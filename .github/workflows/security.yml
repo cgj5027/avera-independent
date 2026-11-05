@@ -36,6 +36,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run typecheck:backend
+      - run: npm run typecheck:platform
       - run: npm run build
       - name: Install browser for fixture acceptance checks
         run: npx playwright install --with-deps chromium

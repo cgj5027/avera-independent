@@ -35,7 +35,8 @@ top-level dependency range was changed. The final advisory scan reports zero
 known vulnerabilities. CI now also installs Chromium and runs the responsive
 accessibility fixture suite after the existing validation/security steps.
 
-Checkpoint status: complete locally, ready for review. Final validation used a
+Checkpoint status: local and GitHub CI passed; [PR #8](https://github.com/cgj5027/avera-independent/pull/8)
+is open for review. Final local validation used a
 fresh lockfile installation with lifecycle scripts disabled on Node 24.19.0 /
 npm 11.9.0:
 
@@ -55,5 +56,35 @@ configuration and a large (~1.36 MB uncompressed) frontend bundle.
 
 Live integrations, authorization, manual assistive technology and cross-OS
 packaging remain separate later gates. The copied code still requires Base44.
-Next: stage 2 API/configuration boundaries, followed by durable storage and
-provider replacements before the full account-free demo entry is accepted.
+Stage 2 follows below; durable storage and provider replacements precede full
+account-free demo acceptance.
+
+## Stage 2: application and configuration boundaries
+
+Frontend record, auth, settings, service, private resume and consent operations
+now use typed application ports through one composition root. The compatibility
+adapter preserves current Base44 behavior. Configuration defaults are SQLite
+and gateway for the future server; unsupported adapters/configuration fail
+explicitly without falling back to cloud data. The new strict platform type check
+runs in CI. See [service boundaries](SERVICE_BOUNDARIES.md) and `config/` examples.
+
+This stage does not implement a working independent HTTP server or database
+driver. The only production adapter registered today is Base44. Stage 3 supplies
+durable storage, transport, validation and ownership enforcement. Version 1 sync
+remains unavailable; live providers and manual accessibility remain later gates.
+
+Local checkpoint results:
+
+- 21 test files / 430 tests passed, including 28 boundary/configuration tests and
+  three consent-page port integration tests.
+- Lint, frontend/backend type checks, the new strict platform type check, and
+  production build passed.
+- 200 responsive/browser fixture checks passed across four widths and both
+  themes, with zero reported axe violations.
+- npm audit: zero known vulnerabilities. Staged-diff secret scan: no leaks found.
+- Workflow YAML and `git diff --check` passed. The interface import guard also
+  checks that frontend source does not import the backend configuration module.
+
+The existing build warnings remain (Base44 configuration absent in this isolated
+workspace and the large frontend bundle). Stage 2 is based on the Stage 1 branch
+while PR #8 is still open; merge/rebase order must preserve that baseline.

@@ -9,7 +9,7 @@ import { sandboxErrorMessage, sandboxErrorReference } from './sandboxErrors';
  * All entity access flows through dataService, which filters by the
  * authenticated user's id on top of server-side row-level security.
  */
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { listRecords, createRecords, deleteRecordsWhere } from './dataService';
 import { buildDemoDataset, createDemoRecords, DEMO_PROFILES, DEMO_PROFILE_KEYS } from './demoProfiles';
 import { getDemoWorkspace, setDemoWorkspace, clearDemoWorkspace, setModeOwner } from '@/lib/mode';
@@ -45,7 +45,7 @@ export async function removeDemoData(profileKeys, plaidItemIds = []) {
   const demoItems = await listRecords('plaidItem', { demo_profile: { $in: validKeys } }, {allDatasets:true});
   const itemIds = [...new Set([...demoItems.map((i) => i.item_id)].filter(Boolean))];
   for (const itemId of itemIds) {
-    await base44.functions.invoke('plaidDisconnect', { item_id:itemId, demo_only:true });
+    await application.services.invoke('plaidDisconnect', { item_id:itemId, demo_only:true });
   }
   return itemIds;
 }
@@ -60,14 +60,14 @@ async function seedStructuralRecords(profileKey, includeTransactionData) {
 
 /** Connects the profile's Plaid Sandbox custom user, syncs it, and returns the item id. */
 async function connectPlaidDemo(profileKey) {
-  const res = await base44.functions.invoke('demoSandboxConnect', { profile_key: profileKey });
+  const res = await application.services.invoke('demoSandboxConnect', { profile_key: profileKey });
   const itemId = res.data?.item_id ?? null;
   if (!itemId) throw new Error(res.data?.error || 'Plaid Sandbox connection failed.');
   // Sandbox transaction preparation is asynchronous. Both an empty successful
   // sync and PRODUCT_NOT_READY are transient; never discard the Item after one poll.
   const delays = [1000, 2000, 4000, 8000, 16000];
   for (let attempt = 0; attempt <= delays.length; attempt++) {
-    const result = await base44.functions.invoke('plaidSync', { item_id: itemId });
+    const result = await application.services.invoke('plaidSync', { item_id: itemId });
     const own = result.data?.results?.find(r => r.item_id === itemId);
     if (!own) throw Object.assign(new Error('Demo sync failed'), { code: 'SANDBOX_SYNC_FAILED' });
     if (own.status === 'synced' && own.transactions > 0) return itemId;
@@ -85,7 +85,7 @@ async function connectPlaidDemo(profileKey) {
  * failed and the labeled Avera sample dataset was used instead.
  */
 export async function loadDemoProfile(profileKey, { viaPlaid = false } = {}) {
-  const user = await base44.auth.me();
+  const user = await application.auth.currentUser();
   if (!user?.id) throw new Error('Sign in to load demo data.');
   setModeOwner(user.id);
   if (!DEMO_PROFILES[profileKey]) throw new Error('Unknown demo profile.');

@@ -1,4 +1,4 @@
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { getDataMode, getDemoWorkspace } from '@/lib/mode';
 
 // Browser checks complement server authorization; they cannot establish AI grounding.
@@ -7,17 +7,17 @@ export const JOB_SEARCH_TIMEOUT_MS = 60000;
 export const MAX_QUESTION_LENGTH = 2000;
 
 async function authenticatedInvoke(name, payload, timeoutMs = SERVICE_TIMEOUT_MS) {
-  const user = await base44.auth.me();
+  const user = await application.auth.currentUser();
   if (!user?.id) throw new Error('Sign in to continue.');
   let timer;
   try {
     const response = await Promise.race([
-      base44.functions.invoke(name, payload),
+      application.services.invoke(name, payload),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('Service timed out.')), timeoutMs);
       }),
     ]);
-    const current = await base44.auth.me();
+    const current = await application.auth.currentUser();
     if (current?.id !== user.id) throw new Error('Your account changed. Please try again.');
     if (payload.dataset) {
       const dataset=getDataMode()==='demo'?{mode:'demo',profile:getDemoWorkspace()?.profile}:{mode:'ordinary'};

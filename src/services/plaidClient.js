@@ -5,7 +5,7 @@ import { sandboxErrorMessage } from './sandboxErrors';
  * sees a credential. This module only orchestrates the Link widget and
  * invokes those functions.
  */
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 
 export const PLAID_LABEL = 'Plaid Sandbox — Test account';
 export const PLAID_SOURCE_LABEL = 'Plaid Sandbox';
@@ -35,7 +35,7 @@ function loadPlaidLink() {
 
 /** Opens the Plaid Link widget; resolves after the token exchange completes. */
 export function connectBank({ itemId = undefined } = {}) {
-  return base44.functions.invoke('plaidCreateLinkToken', itemId ? {item_id:itemId} : {}).then(({ data }) =>
+  return application.services.invoke('plaidCreateLinkToken', itemId ? {item_id:itemId} : {}).then(({ data }) =>
     (typeof data?.link_token === 'string' && data.link_token.startsWith('link-sandbox-') ? loadPlaidLink() : Promise.reject(new Error('Sandbox Link token unavailable'))).then(
       (Plaid) =>
         new Promise((resolve, reject) => {
@@ -47,7 +47,7 @@ export function connectBank({ itemId = undefined } = {}) {
               settled=true;
               try {
                 if (itemId) { settled=true; handler.destroy(); resolve({reconnected:true}); return; }
-                const res = await base44.functions.invoke('plaidExchangeToken', {
+                const res = await application.services.invoke('plaidExchangeToken', {
                   public_token: publicToken,
                   institution_id: (metadata.institution && metadata.institution.institution_id) || '',
                   institution_name: (metadata.institution && metadata.institution.name) || 'Test bank'
@@ -80,5 +80,5 @@ export function connectBank({ itemId = undefined } = {}) {
 
 /** Syncs all connected test banks: refreshes balances and imports transactions. */
 export function syncConnections(itemId = undefined) {
-  return base44.functions.invoke('plaidSync', itemId ? {item_id:itemId} : {}).then(({ data }) => data);
+  return application.services.invoke('plaidSync', itemId ? {item_id:itemId} : {}).then(({ data }) => data);
 }

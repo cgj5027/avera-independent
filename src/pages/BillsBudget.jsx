@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { getDataMode, getDemoWorkspace } from '@/lib/mode';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import PageHeader from '@/components/layout/PageHeader';
 import SummaryCard from '@/components/finance/SummaryCard';
 import ConfirmDeleteDialog from '@/components/finance/ConfirmDeleteDialog';
@@ -154,7 +154,7 @@ export default function BillsBudget() {
 
   const suggestCategories = () =>
     run(async () => {
-      const res = await base44.functions.invoke('suggestCategories', {dataset:getDataMode()==='demo'?{mode:'demo',profile:getDemoWorkspace()?.profile}:{mode:'ordinary'}});
+      const res = await application.services.invoke('suggestCategories', {dataset:getDataMode()==='demo'?{mode:'demo',profile:getDemoWorkspace()?.profile}:{mode:'ordinary'}});
       if (res.data?.error) throw new Error(res.data.error);
     }, 'Categories suggested for your transactions');
 

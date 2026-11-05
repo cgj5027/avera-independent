@@ -14,3 +14,7 @@ backup/recovery. Multi-device sync is deferred to version 2.
 
 Repository setup does not implement the migration. Keep the existing application
 available until Base44-free operation and recovery have been verified.
+
+Stage 2 routes frontend operations through [replaceable application ports](docs/SERVICE_BOUNDARIES.md).
+Only the compatibility adapter is active today; setting local storage variables
+does not yet start an independent backend or migrate existing records.

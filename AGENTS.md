@@ -28,7 +28,8 @@ application; older stage audits and Base44-only restrictions are historical.
 ## Checks
 
 Install with `npm ci --ignore-scripts`. Run `npm test`, `npm run lint`,
-`npm run typecheck`, `npm run typecheck:backend` and `npm run build` for a release
+`npm run typecheck`, `npm run typecheck:backend`, `npm run typecheck:platform`
+and `npm run build` for a release
 checkpoint. Run relevant browser suites against a local preview with synthetic
 API fixtures; never use production records for destructive tests.
 

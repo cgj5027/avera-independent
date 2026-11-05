@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:browser": "node tests/browser-smoke.cjs",
     "typecheck:backend": "tsc -p tsconfig.backend.json",
-    "test:stage3:browser": "node tests/stage3-browser.cjs"
+    "test:stage3:browser": "node tests/stage3-browser.cjs",
+    "typecheck:platform": "tsc -p tsconfig.platform.json"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.57",

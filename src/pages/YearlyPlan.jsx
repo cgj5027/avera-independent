@@ -15,7 +15,7 @@ import PossibleIncomeSources from '@/components/yearlyplan/PossibleIncomeSources
 import ProjectedIncomeDialog from '@/components/yearlyplan/ProjectedIncomeDialog';
 import IncomeCard from '@/components/income/IncomeCard';
 import IncomeDialog from '@/components/income/IncomeDialog';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { listRecords, createRecord, updateRecord, deleteRecord, getHouseholdProfile } from '@/services/dataService';
 import * as calc from '@/services/financialCalculations';
 import { estimateFromTransactions, estimateIncomeCandidates, incomePatternMonthly, normalizeName } from '@/services/plaidEstimates';
@@ -136,7 +136,7 @@ export default function YearlyPlan() {
   const addIncomeFromCandidate = async (candidate) => {
     setProjecting(true);
     try {
-      const res = await base44.functions.invoke('projectAnnualIncome', {
+      const res = await application.services.invoke('projectAnnualIncome', {
         name: candidate.name,
         amount: candidate.amount,
         frequency: candidate.frequency,

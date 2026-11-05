@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +21,7 @@ export default function FeedbackForm() {
     if (request.current?.signature!==signature) request.current={signature,id:crypto.randomUUID()};
     setSaving(true);
     try {
-      const response=await base44.functions.invoke('submitFeedback',{rating:Number(rating),message:message.trim(),consent:true,request_id:request.current.id});
+      const response=await application.services.invoke('submitFeedback',{rating:Number(rating),message:message.trim(),consent:true,request_id:request.current.id});
       if (response.data?.saved!==true) throw new Error('Not confirmed');
       setStatus('Feedback saved. Thank you.');setMessage('');setRating('');setConsent(false);request.current=null;
     } catch {
