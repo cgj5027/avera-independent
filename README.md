@@ -1,5 +1,11 @@
 # Avera
 
+> **Independent rebuild:** this repository starts from the existing Base44
+> application. Follow [the approved plan](docs/INDEPENDENT_REBUILD_PLAN.md) and
+> [stage checkpoints](docs/STAGED_DELIVERY.md). Standalone storage, gateway
+> operation, new demo entry and recovery are being implemented in stages; the
+> baseline instructions and historical roadmap below do not certify them.
+
 **Avera** is a household financial wellness and income-opportunity platform.
 Tagline: **Your finances. Your rules. Your control.**
 Visual specification: *Avera Alternative — Design System v2.0* (`avera_design_system.md`, authoritative).

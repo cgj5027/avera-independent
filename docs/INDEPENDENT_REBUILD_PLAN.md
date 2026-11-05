@@ -1,6 +1,7 @@
 # Avera independent rebuild
 
-Status: approved direction; implementation pending. This repository preserves the
+Status: approved direction; staged implementation started. Track completed work
+and validation in [stage checkpoints](STAGED_DELIVERY.md). This repository preserves the
 history and code of `cgj5027/avera`, branch `work`, through
 `6729017694c87345cdc0b52e645d77867f613808`.
 

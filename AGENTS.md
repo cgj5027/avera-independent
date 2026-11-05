@@ -1,34 +1,40 @@
-# AGENTS.md
+# Avera independent
 
-## Project Context
+This repository rebuilds the user-owned Avera application independently of Base44.
+Read `REBUILD.md`, `docs/INDEPENDENT_REBUILD_PLAN.md` and
+`docs/STAGED_DELIVERY.md` before implementation. The README describes the existing
+application; older stage audits and Base44-only restrictions are historical.
 
-This is a Base44 app repository. Treat it as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
+## Implementation rules
 
-Start with `README.md` for local setup, environment variables, and publish workflow.
+- Deliver bounded stages, running their checks before the next stage. Record
+  evidence and unresolved gates; never turn fixture results into live certification.
+- Preserve financial calculations, source labels, user/dataset isolation and the
+  established color tokens. Test financial behavior rather than implementation shape.
+- Target React/Tailwind and TypeScript/Node.js, SQLite locally/PostgreSQL hosted,
+  with gateway integrations by default. LocalStorage is for preferences only.
+- Keep storage, auth, files and providers behind replaceable interfaces. Retain
+  all agreed online integrations. Never ship shared credentials to the browser or
+  downloadable package; never print or commit secrets or real financial records.
+- Base44 is a temporary compatibility backend, not the target architecture.
+  Do not link or deploy this copy to the original production application.
+- Version 1 has no multi-device synchronization; prepare identity, ownership,
+  revisions and change tracking without claiming synchronization is implemented.
+- Demo/personal switching must isolate datasets and refresh dependent views.
+  Switching away must not delete sample records; resetting is a separate action.
+- Target WCAG 2.2 AA and four-click access to important information. Automated
+  accessibility checks supplement manual validation, not replace it.
 
-## Base44 References
+## Checks
 
-- CLI overview: https://docs.base44.com/developers/references/cli/get-started/overview.md
-- Agent skills: https://docs.base44.com/developers/backend/overview/skills.md
+Install with `npm ci --ignore-scripts`. Run `npm test`, `npm run lint`,
+`npm run typecheck`, `npm run typecheck:backend` and `npm run build` for a release
+checkpoint. Run relevant browser suites against a local preview with synthetic
+API fixtures; never use production records for destructive tests.
 
-If your agent supports Agent Skills, install or update Base44 skills before Base44-specific work:
+Current frontend preview/build still uses the Base44 Vite plugin. A successful
+build does not establish standalone operation. Keep dependencies pinned by the
+lockfile and report dependency advisories rather than hiding them.
 
-```bash
-npx skills add base44/skills
-```
-
-## Key Files
-
-- `src/`: frontend application source.
-- `src/api/base44Client.js`: frontend Base44 SDK client.
-- `vite.config.js`: Vite config and Base44 Vite plugin setup.
-- `.env.local`: local-only environment values; never commit secrets.
-
-## Working Notes
-
-- Use `base44 dev` as the default local development command when you need the local Base44 backend. It can run the backend and frontend together.
-- When docs or code mention the frontend being started automatically, that usually means the Base44 project config includes `site.serveCommand`, for example `"serveCommand": "npm run dev"` in `base44/config.jsonc`.
-- Use `npm run dev` only for frontend-only work against the hosted Base44 backend.
-- Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
-- Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
-- Run the relevant checks from `package.json` before finishing code changes.
+Use conventional commits and stage-specific branches/PRs. Keep the original
+`cgj5027/avera` repository unchanged during this rebuild.

@@ -37,3 +37,27 @@ jobs:
       - run: npm run typecheck
       - run: npm run typecheck:backend
       - run: npm run build
+      - name: Install browser for fixture acceptance checks
+        run: npx playwright install --with-deps chromium
+      - name: Run responsive and accessibility fixture checks
+        shell: bash
+        env:
+          AUDIT_BASE_URL: http://127.0.0.1:4173
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/avera-preview.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          node --input-type=module <<'JS'
+          import { setTimeout } from 'node:timers/promises';
+          let ready = false;
+          for (let attempt = 0; attempt < 30; attempt++) {
+            try {
+              const response = await fetch(process.env.AUDIT_BASE_URL, { signal: AbortSignal.timeout(1000) });
+              if (response.ok) { ready = true; break; }
+            } catch {}
+            await setTimeout(1000);
+          }
+          if (!ready) throw new Error('Local preview did not become ready');
+          JS
+          export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          npm run test:stage3:browser

@@ -221,20 +221,27 @@ it('concurrent goal contributions and retries retain both independent updates', 
 });
 
 it('edits and deletes logged spending through the budget UI', async () => {
+  const now = new Date();
+  const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const previousDate = `${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, '0')}-01`;
   await data.createRecord('budgetCategory',{name:'Food',monthly_limit:100});
-  await data.createRecord('transaction',{description:'Lunch',category:'Food',amount:10,type:'expense',date:'2026-10-01'});
+  const lunch = await data.createRecord('transaction',{description:'Lunch',category:'Food',amount:10,type:'expense',date:currentDate});
+  const earlier = await data.createRecord('transaction',{description:'Earlier lunch',category:'Food',amount:20,type:'expense',date:previousDate});
   render(<BillsBudget />);
   const tab=await screen.findByRole('tab',{name:'Budget',exact:true});
   fireEvent.mouseDown(tab,{button:0,ctrlKey:false});fireEvent.click(tab);
   fireEvent.click(await screen.findByRole('button',{name:/View transactions/}));
+  expect(screen.queryByRole('button',{name:'Edit spending Earlier lunch'})).toBeNull();
   fireEvent.click(await screen.findByRole('button',{name:'Edit spending Lunch'}));
   fireEvent.change(screen.getByLabelText('Amount'),{target:{value:'15'}});
   fireEvent.click(screen.getByRole('button',{name:'Save changes'}));
-  await waitFor(()=>expect(rows.Transaction[0].amount).toBe(15));
+  await waitFor(()=>expect(rows.Transaction.find(row => row.id === lunch.id).amount).toBe(15));
+  expect(rows.Transaction.find(row => row.id === earlier.id).amount).toBe(20);
   await waitFor(()=>expect(screen.queryByRole('button',{name:'Save changes'})).toBeNull());
   fireEvent.click(screen.getByRole('button',{name:'Delete spending Lunch'}));
   fireEvent.click(screen.getByRole('button',{name:'Delete',exact:true}));
-  await waitFor(()=>expect(rows.Transaction).toHaveLength(0));
+  await waitFor(()=>expect(rows.Transaction).toEqual([earlier]));
 });
 
 
