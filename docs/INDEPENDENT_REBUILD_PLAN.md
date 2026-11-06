@@ -95,6 +95,12 @@ Local storage does not mean local AI processing.
 8. Rehearse recovery and test all retained workflows with Base44 access disabled.
 9. Cut over; cancel Base44 only after acceptance and recovery checks pass.
 
+Stage 4 implements the outgoing provider and independent account flows; see
+[connected-service setup and live acceptance](CONNECTED_SERVICES.md). The existing
+Base44 inbound MCP publishing service must also be replaced and accepted before
+the Stage 7 exit gate; its compatibility consent page is not proof of an
+independent MCP implementation.
+
 Base44 exit gates: no SDK/plugin/runtime dependencies, Base44-hosted assets,
 authentication, storage, functions, AI/file services or secrets required for
 operation; Avera-owned provider accounts; migrated data reconciled. The current

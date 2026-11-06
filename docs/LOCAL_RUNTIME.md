@@ -1,4 +1,4 @@
-# Stage 3: independent server and durable storage
+# Independent local runtime
 
 ## Run locally
 
@@ -13,10 +13,10 @@ npm run start:local
 
 Open the loopback URL printed by the server (normally http://127.0.0.1:4175).
 Create a local account with an email identifier and a 12–128 character password.
-Email ownership is not verified in this stage. Google sign-in, email verification,
-password recovery and consent grants remain compatibility/provider work for Stage
-4 and are unavailable in independent mode. Forgotten local passwords currently
-have no recovery flow; do not use production data before recovery acceptance.
+Connected authentication and recovery are now configurable; see the
+[Stage 4 setup and pending acceptance](CONNECTED_SERVICES.md). Without configured
+email, local passwords still have no email recovery. Do not use production data
+before the recovery and live acceptance gates.
 
 The local build uses `src/api/httpApplication.js`, excludes the SDK bootstrap from
 its module graph, and does not load the Base44 Vite plugin. It bundles the existing
@@ -37,10 +37,10 @@ set backend variables in the process environment. Do not commit `.env.local`.
 - `AVERA_PUBLIC_ORIGIN` is optional for a TLS reverse proxy and must be an exact
   HTTPS origin. The server itself binds loopback only; hosted deployment/auth
   hardening is not certified by this stage.
-- Gateway remains the default integration setting, but online forwarding is not
-  implemented until Stage 4. Even a configured gateway does not yet enable it.
-- `AVERA_FILES_PATH` reserves the private-file location for Stage 4. Resume
-  processing currently returns unavailable; it does not store uploads.
+- Gateway remains the default. Configure its URL and a unique backend-only
+  installation grant to enable forwarding. See the Stage 4 guide.
+- `AVERA_FILES_PATH` reserves the private-file location. Resume processing uses
+  request memory/private provider files and does not persist a local document.
 
 SQLite records, account password hashes, hashed session tokens, schema versions,
 record revisions, deletion markers and a change journal are stored on disk. Local
@@ -66,7 +66,7 @@ with the independent server's protected contribution ledger.
 
 The browser calls same-origin `/api/v1` endpoints for public settings, password
 registration/login/logout/profile, records/query/bulk operations and services.
-Opaque HttpOnly/SameSite=Strict cookies replace localStorage bearer tokens in
+Opaque HttpOnly/SameSite=Lax cookies replace localStorage bearer tokens in
 independent mode. Session tokens are hashed in storage and expire after eight
 hours; logout revokes them before navigating away. Passwords use salted scrypt.
 Authentication attempts have a bounded process-local limit; persistent production
@@ -83,13 +83,13 @@ cleanup, while ordinary contribution removal occurs with goal deletion.
 Mutating JSON requests require the correct Origin and Host. The server does not
 enable cross-origin API access; JSON responses are not cached. Static files remain
 within the built frontend root, with CSP, nosniff, frame and referrer protections.
-The current CSP intentionally permits no external provider scripts or frames;
-Stage 4 must add only the required provider origins before enabling Plaid Link.
+The CSP permits the fixed Plaid widget origins. Actual provider/widget behavior
+still requires live acceptance; see the connected-services guide.
 
 `logGoalContribution`, deterministic `projectAnnualIncome`, and consented local
-feedback persistence are implemented. Plaid, AI, job search and AI suggestion
-operations return an explicit unavailable response. No external provider request,
-Base44 fallback or fabricated financial response is performed in independent mode.
+feedback persistence are implemented. Plaid, AI, job search and suggestions use the independent provider boundary
+when configured. Missing providers return unavailable; no Base44 fallback or
+fabricated financial response is used.
 
 ## Checks
 

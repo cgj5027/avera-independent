@@ -17,8 +17,9 @@
     "typecheck:platform": "tsc -p tsconfig.platform.json",
     "build:local": "node scripts/build-local.mjs",
     "start:local": "node --env-file-if-exists=.env.local --experimental-strip-types server/index.ts",
-    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts",
-    "test:local:browser": "node tests/local-runtime-browser.cjs"
+    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts tests/integrations.node.test.ts",
+    "test:local:browser": "node tests/local-runtime-browser.cjs",
+    "start:gateway": "node --env-file-if-exists=.env.local --experimental-strip-types server/gateway.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.57",

@@ -8,9 +8,19 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"]
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["src/platform/**/*.ts", "server/**/*.ts"]
+  "include": [
+    "src/platform/**/*.ts",
+    "server/**/*.ts"
+  ]
 }

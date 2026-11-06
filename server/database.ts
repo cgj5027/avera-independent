@@ -56,14 +56,14 @@ export function openDatabase(config: ReturnType<typeof readServerConfig>): Datab
   return config.storage.driver === 'sqlite'
     ? sqliteDatabase(config.storage.path!) : postgresDatabase(config.storage.connectionString!);
 }
-export async function migrate(db: Database) {
+export async function migrate(db: Database, targetVersion: 1 | 2 = 2) {
   await db.transaction(async tx => {
     if (db.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(718303)');
     await tx.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
     const versions = await tx.query('SELECT MAX(version) AS version FROM schema_migrations');
     const version = Number(versions[0].version ?? 0);
-    if (version > 1) throw new Error('This database needs a newer Avera version.');
-    if (version === 1) return;
+    if (version > targetVersion) throw new Error('This database needs a newer Avera version.');
+    if (version < 1) {
     await tx.query(`CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL, display_name TEXT NOT NULL, created_at TEXT NOT NULL)`);
     await tx.query(`CREATE TABLE sessions (token_hash TEXT PRIMARY KEY,
@@ -80,5 +80,22 @@ export async function migrate(db: Database) {
     await tx.query(`CREATE TABLE feedback (owner_id TEXT NOT NULL REFERENCES users(id), request_id TEXT NOT NULL,
       rating INTEGER NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(owner_id,request_id))`);
     await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(1,$1)', [new Date().toISOString()]);
+    }
+    if (version < 2 && targetVersion >= 2) {
+      await tx.query(`CREATE TABLE private_data(owner_id TEXT NOT NULL, collection TEXT NOT NULL,
+        natural_key TEXT NOT NULL, id TEXT NOT NULL UNIQUE, ciphertext TEXT NOT NULL,
+        PRIMARY KEY(owner_id,collection,natural_key))`);
+      await tx.query('CREATE TABLE service_leases(lease_key TEXT PRIMARY KEY, token TEXT NOT NULL, expires_at BIGINT NOT NULL)');
+      await tx.query('CREATE TABLE service_usage(usage_key TEXT PRIMARY KEY, used INTEGER NOT NULL, expires_at BIGINT NOT NULL)');
+      await tx.query('CREATE TABLE ai_consent(owner_id TEXT PRIMARY KEY REFERENCES users(id), enabled INTEGER NOT NULL, updated_at TEXT NOT NULL)');
+      await tx.query('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0');
+      await tx.query('ALTER TABLE users ADD COLUMN pending_verification INTEGER NOT NULL DEFAULT 0');
+      await tx.query(`CREATE TABLE auth_challenges(token_hash TEXT PRIMARY KEY, kind TEXT NOT NULL,
+        user_id TEXT REFERENCES users(id), payload TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+        expires_at BIGINT NOT NULL, used INTEGER NOT NULL DEFAULT 0)`);
+      await tx.query(`CREATE TABLE oauth_accounts(provider TEXT NOT NULL, subject TEXT NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id), PRIMARY KEY(provider,subject))`);
+      await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(2,$1)',[new Date().toISOString()]);
+    }
   });
 }

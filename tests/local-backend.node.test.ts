@@ -24,7 +24,7 @@ for (const dialect of ['sqlite','postgres'] as const) {
     assert.equal(signup.status,200);
     assert.equal(signup.data.requires_verification,false);
     const session=signup.headers.get('set-cookie')!.split(';')[0];
-    assert.match(signup.headers.get('set-cookie')!,/HttpOnly; SameSite=Strict/);
+    assert.match(signup.headers.get('set-cookie')!,/HttpOnly; SameSite=Lax/);
     const me=await request('/auth/me','GET',undefined,session);
     const owner=me.data.id;
     const signupB=await request('/auth/register','POST',{email:`${randomUUID()}@example.test`,password});
@@ -147,7 +147,7 @@ for (const dialect of ['sqlite','postgres'] as const) {
       const history=await runtime.store.db.transaction(tx=>tx.query('SELECT * FROM changes WHERE owner_id=$1 AND record_id=$2 ORDER BY seq',[owner,id]));
       assert.deepEqual(history.map(r=>r.operation),['create','update','delete']);
       const count=await runtime.store.db.transaction(tx=>tx.query('SELECT COUNT(*) AS n FROM schema_migrations'));
-      assert.equal(Number(count[0].n),1);
+      assert.equal(Number(count[0].n),2);
     });
   });
 }

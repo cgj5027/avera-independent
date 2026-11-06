@@ -15,6 +15,6 @@ if (publicOrigin) {
 }
 const dist=resolve('dist-local');
 if (!existsSync(resolve(dist,'index.html'))) throw new Error('Run npm run build:local before starting the local application.');
-const runtime=await startLocalServer({db:openDatabase(config),port,dist,publicOrigin});
+const runtime=await startLocalServer({db:openDatabase(config),port,dist,publicOrigin,env:process.env});
 console.log(`Avera is available at ${runtime.url}`);
 for (const signal of ['SIGINT','SIGTERM']) process.once(signal,()=>{ void runtime.close().then(()=>process.exit(0)); });

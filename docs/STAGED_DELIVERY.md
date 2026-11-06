@@ -131,3 +131,60 @@ claimed here. Stage 1 is on main. Stage 2 (#9) was merged into the old Stage 1
 branch after that branch's PR had merged, so its commit had not reached main.
 Stage 3 targets main and includes that already-reviewed Stage 2 commit; merging
 the Stage 3 PR brings both stages onto main without losing their history.
+
+## Stage 4: independent connected services and account flows
+
+Stage 3 is merged into main (PR #10). This stage implements gateway-default and
+advanced direct transports without SDK/runtime imports in the independent server.
+The retained Plaid Sandbox, Ask Avera, category/bill suggestions, AI web search,
+optional LinkedIn source, Photon and separately consented resume processing now
+use the selected database and independent provider boundary. Missing credentials
+never cause fallback to Base44. A headless gateway entry point and private
+installation-grant helper are included; no public gateway was deployed.
+
+The migration adds encrypted private storage, persistent minute/day quotas,
+bank-operation leases, sharing preferences, account challenges and Google
+identities. Real bank tokens stay at the gateway; downloaded installations hold
+owner-bound opaque handles. Retry-safe imports retain the cursor on failures.
+AI/profile sharing defaults off, can be revoked in Settings, and does not persist
+assistant conversations. Local recurring-payment estimates remain available
+without AI and require user review.
+
+Account flows include configurable email verification, encrypted asynchronous
+email retries, single-use password reset with session revocation, and Google OIDC
+with PKCE/state/nonce/signature verification. Existing local accounts remain
+usable. Private resume uploads request provider expiration and deletion; failed
+cleanup is queued encrypted for retry rather than described as zero retention.
+See [operator setup, privacy/recovery details and live gates](CONNECTED_SERVICES.md).
+
+Local checkpoint on Linux/Node 24:
+
+- 22 regression files / 433 tests passed.
+- 46 native checks passed against temporary SQLite and PostgreSQL 16, with no
+  skips: owner/dataset isolation, provider failure/cursor retry, import dedupe,
+  bank-operation exclusion, gateway grant/actor isolation, offline bill review,
+  retained job sources, resume validation/deletion retry, persisted quotas,
+  verification/reset, Google callback rejection and encrypted mail-update races.
+- 41 independent browser cases passed across four widths and both themes,
+  including consent save/revoke/reload, durable finance workflows and full server
+  process restart. No Base44/external requests or browser errors; no reported axe
+  violations or overflow in the audited screens.
+- The 200-case compatibility browser matrix passed with no reported axe violations.
+- Lint, frontend/backend/strict platform checks, both builds and diff checks passed.
+  Production and full dependency audits report zero known vulnerabilities.
+- Redacted Git-history and staged-diff secret scans passed. Existing large-bundle
+  warnings remain; the compatibility build still reports missing Base44 config.
+
+**Status: implementation and fixture acceptance complete; live acceptance pending.**
+No provider credentials/authorized live accounts were available. Gateway hosting,
+real provider/email/Google/resume acceptance and final AI-sharing policy approval
+remain owner/operator tasks in the linked guide. Fixture results do not certify
+live subscriptions or production security/availability. CI must separately pass
+on Node 22 before merge.
+
+Base44's historical inbound MCP publishing is still compatibility infrastructure,
+separate from Ask Avera/outgoing integrations. Independent MCP publishing remains
+an explicit Stage 7 exit gate. Backups/restore/migration, account-free sample mode,
+website navigation and manual accessibility/desktop packaging remain in their
+scheduled stages. No Base44 cancellation or production cutover is authorized by
+this checkpoint.

@@ -20,7 +20,7 @@ export const PUBLIC_COLLECTIONS = [
   'Property', 'MortgageRecord', 'ForecastRecord', 'JobProfile', 'PlaidItem',
 ] as const;
 export interface Application {
-  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean };
+  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean };
   auth: {
     /** A hint to attempt verification, never proof of authorization. */
     hasSession(): boolean;

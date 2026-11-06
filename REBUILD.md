@@ -19,5 +19,6 @@ available until Base44-free operation and recovery have been verified.
 Stage 2 introduced [replaceable application ports](docs/SERVICE_BOUNDARIES.md).
 Stage 3 adds the [independent local runtime](docs/LOCAL_RUNTIME.md), with SQLite
 and PostgreSQL storage. `npm run build:local` and `npm run start:local` run it.
-Online providers, recovery, packaging and migration remain later stages; selecting
-storage never automatically migrates records.
+Stage 4 supplies [independent connected services](docs/CONNECTED_SERVICES.md);
+live provider acceptance is pending. Recovery, packaging and migration remain
+later stages; selecting storage never automatically migrates records.

@@ -26,6 +26,7 @@ export default function Login() {
       await application.auth.signIn(email, password);
       window.location.href = returnTo;
     } catch (err) {
+      if(err.code === "EMAIL_VERIFICATION_REQUIRED") { window.location.href = "/register?verify=" + encodeURIComponent(email); return; }
       setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
