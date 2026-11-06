@@ -28,9 +28,16 @@ application; older stage audits and Base44-only restrictions are historical.
 ## Checks
 
 Install with `npm ci --ignore-scripts`. Run `npm test`, `npm run lint`,
-`npm run typecheck`, `npm run typecheck:backend` and `npm run build` for a release
+`npm run typecheck`, `npm run typecheck:backend`, `npm run typecheck:platform`
+and `npm run build` for a release
 checkpoint. Run relevant browser suites against a local preview with synthetic
 API fixtures; never use production records for destructive tests.
+
+For independent backend changes also run `npm run test:local` against disposable
+SQLite/PostgreSQL databases, `npm run build:local`, and `npm run test:local:browser`.
+The latter uses real temporary SQLite data and a server-process restart. CI
+requires PostgreSQL tests; a skipped local PostgreSQL case is not a pass.
+Use Node 22.18+ and erasable TypeScript syntax for the native server entrypoint.
 
 Current frontend preview/build still uses the Base44 Vite plugin. A successful
 build does not establish standalone operation. Keep dependencies pinned by the

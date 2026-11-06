@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import StatusPill from '@/components/states/StatusPill';
 import ConfirmDeleteDialog from '@/components/finance/ConfirmDeleteDialog';
 import { useToast } from '@/components/ui/use-toast';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { listRecords } from '@/services/dataService';
 import { getDemoWorkspace, setDemoWorkspace } from '@/lib/mode';
 import { connectBank, syncConnections, PLAID_LABEL } from '@/services/plaidClient';
@@ -71,7 +71,7 @@ export default function BankConnections() {
     if (!item) return;
     setBusy('disconnect');
     try {
-      const response = await base44.functions.invoke('plaidDisconnect', {item_id:item.item_id});
+      const response = await application.services.invoke('plaidDisconnect', {item_id:item.item_id});
       if (response.data?.disconnected !== true) throw new Error('Incomplete disconnect');
       const workspace = getDemoWorkspace();
       if (workspace?.plaid_item_id === item.item_id) setDemoWorkspace({...workspace,plaid_item_id:null});

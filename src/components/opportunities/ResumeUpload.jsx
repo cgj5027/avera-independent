@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { FileUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatusPill from '@/components/states/StatusPill';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 
 const ACCEPTED_EXTENSIONS = ['pdf', 'doc', 'docx', 'txt'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -53,7 +53,7 @@ export default function ResumeUpload({ onApply }) {
         reader.readAsDataURL(file);
       });
       const file_base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-      const response = await base44.functions.invoke('parseResume', {
+      const response = await application.files.parseResume({
         file_name: file.name,
         file_base64,
         consent: true,

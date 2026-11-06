@@ -10,6 +10,7 @@ import EmptyState from '@/components/states/EmptyState';
 import PropertyCard from '@/components/properties/PropertyCard';
 import PropertyDialog from '@/components/properties/PropertyDialog';
 import { listRecords, createRecord, updateRecord, deleteRecord } from '@/services/dataService';
+import { application } from '@/api/application';
 import { propertyMonthlyCostsTotal } from '@/services/financialCalculations';
 import { formatCurrency } from '@/utils/format';
 
@@ -78,7 +79,7 @@ export default function Properties() {
     if (!deleteProperty) return;
     setBusy(true);
     try {
-      for (const mortgage of mortgages.filter((m) => m.property_id === deleteProperty.id)) {
+      for (const mortgage of application.records.cascadesDependents ? [] : mortgages.filter((m) => m.property_id === deleteProperty.id)) {
         await deleteRecord('mortgageRecord', mortgage.id);
       }
       await deleteRecord('property', deleteProperty.id);

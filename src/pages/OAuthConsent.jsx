@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { appParams } from "@/lib/app-params";
+import { application } from "@/api/application";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
@@ -9,8 +9,8 @@ import AuthLayout from "@/components/AuthLayout";
 // `ctx` handle — the authorization request itself lives on the server. This page
 // gates on the app-user session, fetches the display info for that handle, shows
 // the categories of access being granted, and posts the approve/deny decision.
-// Do not change the fetch calls, headers, or the `ctx` handle handling — styling
-// and copy are safe to edit.
+// Transport lives behind application.consent; preserve opaque-handle, cookie
+// fallback and single-use response semantics when adding another adapter.
 export default function OAuthConsent() {
   const ctx = new URLSearchParams(window.location.search).get("ctx");
   const [info, setInfo] = useState(null);
@@ -34,24 +34,14 @@ export default function OAuthConsent() {
         // bearer token) so the server can list the granted tools for a
         // signed-in user — the same auth the approve/deny call sends; without
         // it the display request is anonymous and shows no tools.
-        /** @type {Record<string, string>} */
-        const infoHeaders = {};
-        if (appParams.token) infoHeaders.Authorization = "Bearer " + appParams.token;
-        const res = await fetch(
-          `/api/apps/${appParams.appId}/mcp/consent-info?handle=${encodeURIComponent(ctx)}`,
-          { credentials: "include", headers: infoHeaders },
-        );
+        const res = await application.consent.getInfo(ctx);
         if (!res.ok) {
           setError("This authorization link is invalid or has expired.");
           return;
         }
         const data = await res.json();
-        // Gate on the server's auth result, NOT base44.auth.isAuthenticated():
-        // the SDK check runs the bearer path, so a cookie-only session (platform
-        // login/SSO, or a private app with a stale localStorage token) would read
-        // as signed-out and redirect — even though /consent-info just
-        // authenticated this same request via its cookie fallback. data.authenticated
-        // keeps the redirect decision in agreement with what the server returned.
+        // Use the consent server's authentication result. A client-side session
+        // hint cannot verify a cookie-only session or this authorization handle.
         if (!data.authenticated) {
           // The short handle rides back in returnTo; login_path is
           // owner-configured and validated server-side as a same-origin path.
@@ -84,16 +74,9 @@ export default function OAuthConsent() {
     setSubmitting(true);
     setError("");
     try {
-      const headers = { "Content-Type": "application/json" };
       // Cookie-backed sessions carry no token; sending "Bearer null" would
       // shadow the valid cookie, so add the header only when a token exists.
-      if (appParams.token) headers.Authorization = "Bearer " + appParams.token;
-      const res = await fetch(`/api/apps/${appParams.appId}/mcp/authorize-grant`, {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({ ctx, action }),
-      });
+      const res = await application.consent.respond(ctx, action);
       if (!res.ok) {
         // 401 = the session expired before the (single-use, still-unconsumed)
         // handle was spent; retrying the same controls re-sends the dead session

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { application } from "@/api/application";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      await base44.auth.resetPassword({ resetToken, newPassword });
+      await application.auth.resetPassword({ resetToken, newPassword });
       window.location.href = "/login";
     } catch (err) {
       setError(err.message || "Failed to reset password");
@@ -34,6 +34,9 @@ export default function ResetPassword() {
     }
   };
 
+  if (application.capabilities?.passwordReset === false) return (
+    <AuthLayout icon={Lock} title="Email recovery unavailable" subtitle="Email password recovery is not configured for this installation." footer={<Link to="/login">Back to log in</Link>} />
+  );
   if (!resetToken) {
     return (
       <AuthLayout

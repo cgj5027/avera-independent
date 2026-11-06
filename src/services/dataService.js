@@ -1,11 +1,10 @@
 /**
  * Persistence layer — the single seam between UI/business logic and the
- * Base44 database. All reads and writes go through base44.entities.* and are
- * scoped to the signed-in user by row-level security (every financial entity
- * anchors on created_by_id). Source labels travel with every record.
+ * active record adapter. Owner/dataset filters supplement authenticated server
+ * authorization; they never replace it. Source labels travel with every record.
  */
 import { withGoalContributions } from '../../base44/shared/goalSavings';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { setModeOwner, getDataMode, getDemoWorkspace } from '@/lib/mode';
 
 export const DATA_STAGE = 'live';
@@ -30,11 +29,11 @@ export const DATA_ENTITIES = {
 const ent = (key) => {
   const name = DATA_ENTITIES[key];
   if (!name) throw new Error(`Unknown data entity: ${key}`);
-  return base44.entities[name];
+  return application.records.collection(name);
 };
 
 async function currentUser() {
-  const user = await base44.auth.me();
+  const user = await application.auth.currentUser();
   if (!user?.id) throw new Error('Sign in to access your financial records.');
   setModeOwner(user.id);
   return user;
@@ -63,7 +62,7 @@ function financialScope(user, key, query, allDatasets = false) {
 export async function listPage(key, query = {}, opts = {}) {
   const user=await currentUser();
   const {allDatasets=false,...options}=opts;
-  return ent(key).filter(financialScope(user,key,query,allDatasets), {limit:100,...options});
+  return ent(key).list(financialScope(user,key,query,allDatasets), {limit:100,...options});
 }
 export async function listRecords(key, query = {}, { allDatasets = false } = {}) {
   const user = await currentUser();
@@ -72,7 +71,7 @@ export async function listRecords(key, query = {}, { allDatasets = false } = {})
   const cursors = new Set();
   let cursor;
   do {
-    const page = await ent(key).filter(scoped, { limit: 100, ...(cursor ? { cursor } : {}) });
+    const page = await ent(key).list(scoped, { limit: 100, ...(cursor ? { cursor } : {}) });
     items.push(...page.items);
     if (!page.has_more) return key === 'goal' ? withGoalContributions(items, await listRecords('goalContribution', {}, {allDatasets})) : items;
     if (!page.next_cursor || cursors.has(page.next_cursor)) throw new Error('Invalid pagination response');
@@ -83,7 +82,7 @@ export async function listRecords(key, query = {}, { allDatasets = false } = {})
 }
 
 function writable(data) {
-  const { id, created_by_id, created_by, created_date, updated_date, ...fields } = data;
+  const { id, created_by_id, created_by, created_date, updated_date, revision, deleted_at, ...fields } = data;
   return fields;
 }
 
@@ -124,7 +123,7 @@ export async function updateRecord(key, id, data) {
 }
 export async function deleteRecord(key, id) {
   await owned(key, id);
-  if (key === 'goal') await deleteRecordsWhere('goalContribution', {goal_id:id});
+  if (key === 'goal' && !application.records.cascadesDependents) await deleteRecordsWhere('goalContribution', {goal_id:id});
   return ent(key).delete(id);
 }
 
@@ -139,7 +138,7 @@ export async function createRecords(key, rows) {
   await currentUser();
   const created = [];
   for (const batch of chunk(rows.map(writable), 200)) {
-    created.push(...(await ent(key).bulkCreate(batch)));
+    created.push(...(await ent(key).createMany(batch)));
   }
   return created;
 }
@@ -175,7 +174,7 @@ export async function getJobProfile() {
 export async function logGoalContribution(goalId, amount, requestId) {
   await owned('goal',goalId);
   const dataset=getDataMode()==='demo'?{mode:'demo',profile:getDemoWorkspace()?.profile}:{mode:'ordinary'};
-  const response=await base44.functions.invoke('logGoalContribution',{goal_id:goalId,amount,request_id:requestId,dataset});
+  const response=await application.services.invoke('logGoalContribution',{goal_id:goalId,amount,request_id:requestId,dataset});
   if (response.data?.saved!==true) throw new Error('Contribution was not saved.');
 }
 

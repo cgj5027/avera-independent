@@ -1,0 +1,84 @@
+import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync, chmodSync } from 'node:fs';
+import { dirname } from 'node:path';
+import pg from 'pg';
+import type { readServerConfig } from './config.ts';
+
+export type Row = Record<string, any>;
+export interface Transaction { query(sql: string, params?: unknown[]): Promise<Row[]> }
+export interface Database {
+  dialect: 'sqlite' | 'postgres';
+  transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  close(): Promise<void>;
+}
+export function sqliteDatabase(path: string): Database {
+  if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const db = new DatabaseSync(path);
+  if (path !== ':memory:') chmodSync(path, 0o600);
+  db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
+  let queue: Promise<unknown> = Promise.resolve();
+  const tx: Transaction = { async query(sql, params = []) {
+    const args: any[] = [];
+    const statement = sql.replace(/\$(\d+)/g, (_, n) => { args.push(params[Number(n) - 1]); return '?'; });
+    return db.prepare(statement).all(...args);
+  } };
+  return {
+    dialect: 'sqlite',
+    transaction(work) {
+      const result = queue.then(async () => {
+        db.exec('BEGIN IMMEDIATE');
+        try { const value = await work(tx); db.exec('COMMIT'); return value; }
+        catch (error) { db.exec('ROLLBACK'); throw error; }
+      });
+      queue = result.catch(() => {});
+      return result;
+    },
+    async close() { await queue; db.close(); },
+  };
+}
+export function postgresDatabase(connectionString: string): Database {
+  const pool = new pg.Pool({ connectionString, max: 5, connectionTimeoutMillis: 5000 });
+  return {
+    dialect: 'postgres',
+    async transaction(work) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const value = await work({ query: async (sql, params = []) => (await client.query(sql, params)).rows });
+        await client.query('COMMIT'); return value;
+      } catch (error) { await client.query('ROLLBACK'); throw error; }
+      finally { client.release(); }
+    },
+    async close() { await pool.end(); },
+  };
+}
+export function openDatabase(config: ReturnType<typeof readServerConfig>): Database {
+  return config.storage.driver === 'sqlite'
+    ? sqliteDatabase(config.storage.path!) : postgresDatabase(config.storage.connectionString!);
+}
+export async function migrate(db: Database) {
+  await db.transaction(async tx => {
+    if (db.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(718303)');
+    await tx.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
+    const versions = await tx.query('SELECT MAX(version) AS version FROM schema_migrations');
+    const version = Number(versions[0].version ?? 0);
+    if (version > 1) throw new Error('This database needs a newer Avera version.');
+    if (version === 1) return;
+    await tx.query(`CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL, display_name TEXT NOT NULL, created_at TEXT NOT NULL)`);
+    await tx.query(`CREATE TABLE sessions (token_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at BIGINT NOT NULL)`);
+    await tx.query(`CREATE TABLE records (collection TEXT NOT NULL, id TEXT NOT NULL,
+      owner_id TEXT NOT NULL REFERENCES users(id), body ${db.dialect === 'sqlite' ? 'TEXT' : 'JSONB'} NOT NULL,
+      revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      deleted_at TEXT, dedupe_key TEXT, PRIMARY KEY(collection,id))`);
+    await tx.query('CREATE INDEX record_owner ON records(owner_id,collection,deleted_at,id)');
+    await tx.query('CREATE UNIQUE INDEX record_dedupe ON records(owner_id,collection,dedupe_key) WHERE deleted_at IS NULL AND dedupe_key IS NOT NULL');
+    await tx.query(`CREATE TABLE changes (seq ${db.dialect === 'sqlite' ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGSERIAL PRIMARY KEY'},
+      owner_id TEXT NOT NULL, collection TEXT NOT NULL, record_id TEXT NOT NULL,
+      revision INTEGER NOT NULL, operation TEXT NOT NULL, changed_at TEXT NOT NULL)`);
+    await tx.query(`CREATE TABLE feedback (owner_id TEXT NOT NULL REFERENCES users(id), request_id TEXT NOT NULL,
+      rating INTEGER NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(owner_id,request_id))`);
+    await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(1,$1)', [new Date().toISOString()]);
+  });
+}

@@ -1,0 +1,666 @@
+{
+  "HouseholdProfile": {
+    "required": [],
+    "properties": {
+      "household_name": {
+        "type": "string"
+      },
+      "household_type": {
+        "type": "string",
+        "enum": [
+          "single_income",
+          "multi_income"
+        ],
+        "default": "single_income"
+      },
+      "default_pay_frequency": {
+        "type": "string",
+        "enum": [
+          "weekly",
+          "biweekly",
+          "semimonthly",
+          "monthly",
+          "quarterly",
+          "semiannual",
+          "annual"
+        ],
+        "default": "monthly"
+      },
+      "budget_style": {
+        "type": "string",
+        "enum": [
+          "category_caps",
+          "zero_based",
+          "flexible"
+        ],
+        "default": "category_caps"
+      },
+      "emergency_fund_months": {
+        "type": "number",
+        "minimum": 0
+      },
+      "currency": {
+        "type": "string",
+        "default": "USD"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  },
+  "IncomeSource": {
+    "required": [
+      "name",
+      "amount"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "salary",
+          "hourly",
+          "self_employed",
+          "benefits",
+          "other"
+        ],
+        "default": "salary"
+      },
+      "amount": {
+        "type": "number",
+        "minimum": 0
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "weekly",
+          "biweekly",
+          "semimonthly",
+          "monthly",
+          "quarterly",
+          "semiannual",
+          "annual"
+        ],
+        "default": "monthly"
+      },
+      "active": {
+        "type": "boolean",
+        "default": true
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "income_basis": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "gross",
+          "net"
+        ],
+        "default": "unknown"
+      }
+    }
+  },
+  "Account": {
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "checking",
+          "savings",
+          "credit_card",
+          "cash",
+          "investment",
+          "other"
+        ],
+        "default": "checking"
+      },
+      "balance": {
+        "type": "number",
+        "default": 0
+      },
+      "institution": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "plaid_item_id": {
+        "type": "string"
+      },
+      "plaid_account_id": {
+        "type": "string"
+      },
+      "balance_available": {
+        "type": "number"
+      },
+      "balance_limit": {
+        "type": "number"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "import_key": {
+        "type": "string"
+      },
+      "balance_as_of": {
+        "type": "string"
+      }
+    }
+  },
+  "Transaction": {
+    "required": [
+      "amount",
+      "date"
+    ],
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "amount": {
+        "type": "number",
+        "minimum": 0
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "income",
+          "expense"
+        ],
+        "default": "expense"
+      },
+      "category": {
+        "type": "string"
+      },
+      "date": {
+        "type": "string",
+        "format": "date"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "not_recurring": {
+        "type": "boolean",
+        "default": false
+      },
+      "plaid_item_id": {
+        "type": "string"
+      },
+      "plaid_account_id": {
+        "type": "string"
+      },
+      "plaid_transaction_id": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "import_key": {
+        "type": "string"
+      },
+      "exclude_from_cashflow": {
+        "type": "boolean",
+        "default": false
+      }
+    }
+  },
+  "Bill": {
+    "required": [
+      "name",
+      "amount"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "amount": {
+        "type": "number",
+        "minimum": 0
+      },
+      "frequency": {
+        "type": "string",
+        "enum": [
+          "weekly",
+          "biweekly",
+          "semimonthly",
+          "monthly",
+          "quarterly",
+          "semiannual",
+          "annual"
+        ],
+        "default": "monthly"
+      },
+      "next_due_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "category": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "reminder_days": {
+        "type": "number",
+        "default": 3,
+        "minimum": 0
+      },
+      "paid_this_cycle": {
+        "type": "boolean",
+        "default": false
+      },
+      "last_paid_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "recurrence_day": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 31
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "suggestion_merchant": {
+        "type": "string"
+      }
+    }
+  },
+  "BillSuggestionDismissal": {
+    "required": [
+      "fingerprint"
+    ],
+    "properties": {
+      "fingerprint": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  },
+  "BudgetCategory": {
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "monthly_limit": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  },
+  "Goal": {
+    "required": [
+      "name",
+      "target_amount"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "target_amount": {
+        "type": "number",
+        "minimum": 0
+      },
+      "saved_amount": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "target_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      }
+    }
+  },
+  "GoalContribution": {
+    "required": [
+      "goal_id",
+      "amount",
+      "contribution_key"
+    ],
+    "properties": {
+      "goal_id": {
+        "type": "string"
+      },
+      "amount": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1000000000.0
+      },
+      "contribution_key": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  },
+  "Property": {
+    "required": [
+      "nickname",
+      "estimated_value"
+    ],
+    "properties": {
+      "nickname": {
+        "type": "string"
+      },
+      "address": {
+        "type": "string"
+      },
+      "property_type": {
+        "type": "string",
+        "enum": [
+          "primary_residence",
+          "rental",
+          "investment",
+          "vacation",
+          "other"
+        ],
+        "default": "primary_residence"
+      },
+      "estimated_value": {
+        "type": "number",
+        "minimum": 0
+      },
+      "valuation_source": {
+        "type": "string",
+        "enum": [
+          "user_provided",
+          "external_provider"
+        ],
+        "default": "user_provided"
+      },
+      "valuation_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "valuation_notes": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "taxes_monthly": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "insurance_monthly": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "hoa_monthly": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "maintenance_monthly": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      }
+    }
+  },
+  "MortgageRecord": {
+    "required": [
+      "property_id"
+    ],
+    "properties": {
+      "property_id": {
+        "type": "string"
+      },
+      "lender": {
+        "type": "string"
+      },
+      "outstanding_balance": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "monthly_payment": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0
+      },
+      "interest_rate": {
+        "type": "number",
+        "minimum": 0
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  },
+  "ForecastRecord": {
+    "required": [
+      "year"
+    ],
+    "properties": {
+      "year": {
+        "type": "number",
+        "minimum": 0
+      },
+      "projected_income": {
+        "type": "number",
+        "minimum": 0
+      },
+      "projected_expenses": {
+        "type": "number",
+        "minimum": 0
+      },
+      "projected_savings": {
+        "type": "number"
+      },
+      "year_end_cash": {
+        "type": "number"
+      },
+      "assumptions": {
+        "type": "string"
+      },
+      "plan_start_month": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      }
+    }
+  },
+  "JobProfile": {
+    "required": [
+      "skills"
+    ],
+    "properties": {
+      "skills": {
+        "type": "string"
+      },
+      "experience": {
+        "type": "string"
+      },
+      "experience_level": {
+        "type": "string",
+        "enum": [
+          "entry_level",
+          "mid_level",
+          "senior"
+        ],
+        "default": "entry_level"
+      },
+      "preferred_roles": {
+        "type": "string"
+      },
+      "job_type": {
+        "type": "string",
+        "enum": [
+          "any",
+          "full_time",
+          "part_time",
+          "temporary",
+          "contract"
+        ],
+        "default": "any"
+      },
+      "work_mode": {
+        "type": "string",
+        "enum": [
+          "any",
+          "remote",
+          "hybrid",
+          "onsite"
+        ],
+        "default": "any"
+      },
+      "location": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "interests": {
+        "type": "string"
+      },
+      "distance_miles": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 250,
+        "default": 25
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  },
+  "PlaidItem": {
+    "required": [
+      "item_id"
+    ],
+    "properties": {
+      "item_id": {
+        "type": "string"
+      },
+      "institution_id": {
+        "type": "string"
+      },
+      "institution_name": {
+        "type": "string"
+      },
+      "products": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "active",
+          "error",
+          "needs_reauth",
+          "disconnected"
+        ],
+        "default": "active"
+      },
+      "last_synced_at": {
+        "type": "string"
+      },
+      "last_sync_error": {
+        "type": "string"
+      },
+      "demo_profile": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  }
+}

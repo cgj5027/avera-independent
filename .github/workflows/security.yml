@@ -12,7 +12,21 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: avera
+          POSTGRES_DB: avera_test
+          POSTGRES_PASSWORD: fixture-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U avera -d avera_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AVERA_TEST_POSTGRES_URL: postgresql://avera@127.0.0.1:5432/avera_test
+      PGPASSWORD: fixture-only
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -33,9 +47,11 @@ jobs:
       - run: npm audit --audit-level=moderate
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm test
+      - run: npm run test:local
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run typecheck:backend
+      - run: npm run typecheck:platform
       - run: npm run build
       - name: Install browser for fixture acceptance checks
         run: npx playwright install --with-deps chromium
@@ -61,3 +77,9 @@ jobs:
           JS
           export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
           npm run test:stage3:browser
+      - run: npm run build:local
+      - name: Run real independent browser workflows and process restart
+        shell: bash
+        run: |
+          export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          npm run test:local:browser

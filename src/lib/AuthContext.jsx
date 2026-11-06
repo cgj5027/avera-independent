@@ -1,8 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { useIdleLogout, clearActivity } from '@/lib/useIdleLogout';
-import { base44 } from '@/api/base44Client';
+import { application } from '@/api/application';
 import { queryClientInstance } from '@/lib/query-client';
-import { appParams } from '@/lib/app-params';
 import { setModeOwner, clearDataMode } from '@/lib/mode';
 
 const AuthContext = createContext(null);
@@ -27,11 +26,11 @@ export const AuthProvider = ({ children }) => {
       setAuthError(null);
       
       try {
-        const publicSettings = await base44.app.getPublicSettings();
+        const publicSettings = await application.settings.getPublic();
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
+        if (application.auth.hasSession()) {
           await checkUserAuth();
         } else {
           setIsLoadingAuth(false);
@@ -86,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await application.auth.currentUser();
       if(epoch!==authEpoch.current) return;
       if (!currentUser?.id) throw new Error('Account verification failed');
       setAuthError(null);
@@ -121,14 +120,14 @@ export const AuthProvider = ({ children }) => {
     if (!normalized || normalized.length > 100) throw new Error('Enter a name of up to 100 characters.');
     if (!user?.id) throw new Error('Sign in to update your name.');
     const epoch = authEpoch.current;
-    const updated = await base44.auth.updateMe({ display_name: normalized });
+    const updated = await application.auth.updateProfile({ display_name: normalized });
     if (epoch !== authEpoch.current || updated?.id !== user.id) throw new Error('Your account changed. Please sign in again.');
     if (updated.display_name !== normalized) throw new Error('Your name could not be saved. Please retry.');
     setUser(current => current?.id === updated.id ? { ...current, ...updated } : current);
     return updated;
   };
 
-  const logout = useCallback((shouldRedirect = true) => {
+  const logout = useCallback(async (shouldRedirect = true) => {
     if (user?.id) clearActivity(user.id);
     authEpoch.current++;
     setIsLoadingAuth(false);
@@ -139,20 +138,22 @@ export const AuthProvider = ({ children }) => {
     setAuthChecked(true);
     queryClientInstance.clear();
     sessionStorage.removeItem('avera_data_mode');
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(new URL('/login', window.location.origin).href);
+    try { if (shouldRedirect) {
+      // The active authentication adapter handles session cleanup and redirect.
+      await application.auth.signOut(new URL('/login', window.location.origin).href);
     } else {
       // Just remove the token without redirect
-      base44.auth.logout();
+      await application.auth.signOut();
+    } } catch {
+      setAuthError({ type: 'logout_failed', message: 'Sign out could not be completed. Please retry.' });
     }
   }, [user?.id]);
 
   useIdleLogout(isAuthenticated ? user?.id : null, logout);
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    // Delegate login navigation to the active authentication adapter.
+    application.auth.redirectToSignIn(window.location.href);
   };
 
   return (
