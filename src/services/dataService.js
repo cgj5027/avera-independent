@@ -123,7 +123,7 @@ export async function updateRecord(key, id, data) {
 }
 export async function deleteRecord(key, id) {
   await owned(key, id);
-  if (key === 'goal') await deleteRecordsWhere('goalContribution', {goal_id:id});
+  if (key === 'goal' && !application.records.cascadesDependents) await deleteRecordsWhere('goalContribution', {goal_id:id});
   return ent(key).delete(id);
 }
 

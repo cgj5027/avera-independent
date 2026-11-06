@@ -111,8 +111,9 @@ Local checkpoint:
 - 21 native HTTP/database checks passed with temporary SQLite data and an isolated
   PostgreSQL 16 container; no PostgreSQL cases were skipped.
 - 33 real independent browser cases passed: four widths, both themes, local
-  registration, durable bills, household updates, goal contributions, multi-income
-  sample seeding, accessibility/overflow, and full Node-process restart/login.
+  registration, durable bills, household updates, goal contributions and deletion,
+  property/mortgage deletion, multi-income sample seeding, accessibility/overflow,
+  and full Node-process restart/login.
   No Base44/external browser requests or browser exceptions were reported.
 - 200 compatibility browser fixture checks passed with zero reported axe violations.
 - Lint, frontend/backend/strict platform type checks, compatibility and independent

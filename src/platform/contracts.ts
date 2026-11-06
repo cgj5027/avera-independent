@@ -37,7 +37,11 @@ export interface Application {
     signOut(redirect?: string): void | Promise<void>;
     redirectToSignIn(returnTo: string): void;
   };
-  records: { collection(name: string): Collection };
+  records: {
+    /** Goal/Property deletion removes dependents atomically on the server. */
+    cascadesDependents?: boolean;
+    collection(name: string): Collection;
+  };
   services: { invoke<T = any>(name: string, payload?: unknown): Promise<ServiceResponse<T>> };
   files: { parseResume(input: ResumeInput): Promise<ServiceResponse> };
   settings: { getPublic(): Promise<Fields> };

@@ -57,6 +57,11 @@ contribution retries are serialized/idempotent; deleting goals/properties remove
 their dependent contributions/mortgages in the same transaction. Schema versions
 newer than this binary are refused without downgrading data.
 
+The HTTP adapter declares `records.cascadesDependents`, so the UI delegates goal
+and property deletion to that single transaction. The compatibility adapter keeps
+its existing client-side cleanup. This avoids mixing legacy child-by-child deletion
+with the independent server's protected contribution ledger.
+
 ## API and security boundaries
 
 The browser calls same-origin `/api/v1` endpoints for public settings, password

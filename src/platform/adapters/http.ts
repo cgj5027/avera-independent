@@ -37,7 +37,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
       signOut:async redirect=>{ await request('/auth/logout','POST',{}); if(redirect) navigate(returnPath(redirect)); },
       redirectToSignIn:returnTo=>navigate('/login?returnTo='+encodeURIComponent(returnPath(returnTo))),
     },
-    records:{collection(name) {
+    records:{cascadesDependents:true,collection(name) {
       if (!(PUBLIC_COLLECTIONS as readonly string[]).includes(name)) throw new Error('Unknown record collection.');
       if (!collections.has(name)) {
         const path='/records/'+name;
