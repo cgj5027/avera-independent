@@ -126,5 +126,7 @@ Validation ran on Linux/Node 24. CI additionally exercises Node 22.18+; Windows 
 macOS packaging/manual accessibility remain later gates. Local accounts are not
 email-verified and have no recovery flow yet. Live integrations, encrypted backup,
 guided restore, Base44 data migration and production hosted acceptance are not
-claimed here. Stages 1 and 2 were merged before Stage 3 publication; its PR targets
-main directly.
+claimed here. Stage 1 is on main. Stage 2 (#9) was merged into the old Stage 1
+branch after that branch's PR had merged, so its commit had not reached main.
+Stage 3 targets main and includes that already-reviewed Stage 2 commit; merging
+the Stage 3 PR brings both stages onto main without losing their history.
