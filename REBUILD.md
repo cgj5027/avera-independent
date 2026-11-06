@@ -3,10 +3,10 @@
 This is the starting repository for the independent Avera rebuild, preserving the
 newer working branch's history. See [the agreed rebuild plan](docs/INDEPENDENT_REBUILD_PLAN.md).
 
-The copied code still requires Base44. The existing README and AGENTS describe
-that baseline; their platform-only implementation restrictions are superseded
-where necessary by the approved independent rebuild plan. Do not deploy or link
-this copy to the original production Base44 application as part of setup.
+The copied code still requires Base44. The README retains historical baseline
+instructions; AGENTS.md follows the independent rebuild direction. Track delivery
+and validation in [stage checkpoints](docs/STAGED_DELIVERY.md). Do not deploy or
+link this copy to the original production Base44 application as part of setup.
 
 Target: React/Tailwind, TypeScript/Node.js, local SQLite/hosted PostgreSQL,
 gateway-based online integrations, portable desktop operation and encrypted
