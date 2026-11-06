@@ -126,4 +126,5 @@ Validation ran on Linux/Node 24. CI additionally exercises Node 22.18+; Windows 
 macOS packaging/manual accessibility remain later gates. Local accounts are not
 email-verified and have no recovery flow yet. Live integrations, encrypted backup,
 guided restore, Base44 data migration and production hosted acceptance are not
-claimed here. Stage 3 is stacked on Stage 2 (#9), which remains open.
+claimed here. Stages 1 and 2 were merged before Stage 3 publication; its PR targets
+main directly.
