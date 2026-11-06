@@ -11,7 +11,7 @@ async function derive(password: string, salt: string): Promise<Buffer> {
 function credentials(input: unknown) {
   const value=object(input);
   if (Object.keys(value).some(key=>key!=='email'&&key!=='password')) invalid('Unknown account field.');
-  if (typeof value.email !== 'string' || value.email.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email.trim()) ||
+  if (typeof value.email !== 'string' || value.email.length>254 || /[\u0000-\u001f\u007f]/.test(value.email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email.trim()) ||
     typeof value.password !== 'string' || value.password.length<12 || value.password.length>128) invalid('Use a valid email and a password of 12 to 128 characters.');
   return {email:value.email.trim().toLowerCase(),password:value.password};
 }
@@ -61,7 +61,7 @@ export class AuthService {
   }
   async update(userId: string, input: unknown) {
     const fields=object(input);
-    if (Object.keys(fields).length!==1 || typeof fields.display_name !== 'string' || !fields.display_name.trim() || fields.display_name.trim().length>100) invalid('Enter a name of up to 100 characters.');
+    if (Object.keys(fields).length!==1 || typeof fields.display_name !== 'string' || !fields.display_name.trim() || /[\u0000-\u001f\u007f]/.test(fields.display_name) || fields.display_name.trim().length>100) invalid('Enter a name of up to 100 characters.');
     const rows=await this.db.transaction(tx=>tx.query('UPDATE users SET display_name=$1 WHERE id=$2 RETURNING *',[fields.display_name.trim(),userId]));
     return publicUser(rows[0]);
   }

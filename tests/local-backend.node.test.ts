@@ -44,6 +44,7 @@ for (const dialect of ['sqlite','postgres'] as const) {
       });
       assert.equal(rejectedHost,421);
       assert.equal((await request('/auth/me','PATCH',{role:'admin'},session)).status,400);
+      assert.equal((await request('/auth/me','PATCH',{display_name:'Bad\0name'},session)).status,400);
       assert.equal((await request('/auth/me','PATCH',{display_name:' Example '},session)).data.display_name,'Example');
     });
     await t.test('isolates record IDs, queries, writes and bulk actions between users',async()=>{
