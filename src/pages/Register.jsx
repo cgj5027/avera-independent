@@ -29,7 +29,11 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await application.auth.register({ email, password });
+      const result = await application.auth.register({ email, password });
+      if (result?.requires_verification === false) {
+        window.location.href = safeReturnTo();
+        return;
+      }
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -129,8 +133,8 @@ export default function Register() {
   return (
     <AuthLayout
       icon={UserPlus}
-      title="Create your account"
-      subtitle="Sign up to get started"
+      title={application.capabilities?.emailVerification === false ? 'Create a local account' : 'Create your account'}
+      subtitle={application.capabilities?.emailVerification === false ? 'Create an account on this installation. Email recovery is not available yet.' : 'Sign up to get started'}
       footer={
         <>
           Already have an account?{" "}
@@ -143,23 +147,23 @@ export default function Register() {
         </>
       }
     >
-      <Button
+      {application.capabilities?.oauth !== false && <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continue with Google
-      </Button>
+      </Button>}
 
-      <div className="relative mb-6">
+      {application.capabilities?.oauth !== false && <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-3 text-muted-foreground">or</span>
         </div>
-      </div>
+      </div>}
 
       {error && (
         <div role="alert" className="mb-4 p-3 rounded-xl bg-danger-surface text-danger text-base">

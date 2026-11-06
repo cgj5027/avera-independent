@@ -40,7 +40,7 @@ export default function Login() {
     <AuthLayout
       icon={LogIn}
       title="Welcome back"
-      subtitle="Log in to your account"
+      subtitle={application.capabilities?.emailVerification === false ? 'Sign in with the local account created on this installation.' : 'Log in to your account'}
       footer={
         <>
           Don't have an account?{" "}
@@ -53,23 +53,23 @@ export default function Login() {
         </>
       }
     >
-      <Button
+      {application.capabilities?.oauth !== false && <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continue with Google
-      </Button>
+      </Button>}
 
-      <div className="relative mb-6">
+      {application.capabilities?.oauth !== false && <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-3 text-muted-foreground">or</span>
         </div>
-      </div>
+      </div>}
 
       {error && (
         <div role="alert" className="mb-4 p-3 rounded-xl bg-danger-surface text-danger text-base">
@@ -98,9 +98,9 @@ export default function Login() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+            {application.capabilities?.passwordReset !== false && <Link to="/forgot-password" className="text-xs text-primary hover:underline">
               Forgot password?
-            </Link>
+            </Link>}
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />

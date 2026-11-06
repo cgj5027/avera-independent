@@ -13,6 +13,14 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-local
+/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
 dist-ssr
 *.local
 

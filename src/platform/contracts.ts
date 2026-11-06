@@ -20,20 +20,21 @@ export const PUBLIC_COLLECTIONS = [
   'Property', 'MortgageRecord', 'ForecastRecord', 'JobProfile', 'PlaidItem',
 ] as const;
 export interface Application {
+  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean };
   auth: {
     /** A hint to attempt verification, never proof of authorization. */
     hasSession(): boolean;
     currentUser(): Promise<User>;
     updateProfile(fields: Fields): Promise<User>;
     signIn(email: string, password: string): Promise<unknown>;
-    register(fields: { email: string; password: string }): Promise<unknown>;
+    register(fields: { email: string; password: string }): Promise<{ requires_verification?: boolean }>;
     verifyEmail(fields: { email: string; otpCode: string }): Promise<{ access_token?: string }>;
     setSessionToken(token: string): void;
     resendVerification(email: string): Promise<unknown>;
     requestPasswordReset(email: string): Promise<unknown>;
     resetPassword(fields: { resetToken: string; newPassword: string }): Promise<unknown>;
     signInWithProvider(provider: string, returnTo: string): void;
-    signOut(redirect?: string): void;
+    signOut(redirect?: string): void | Promise<void>;
     redirectToSignIn(returnTo: string): void;
   };
   records: { collection(name: string): Collection };

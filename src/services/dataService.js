@@ -82,7 +82,7 @@ export async function listRecords(key, query = {}, { allDatasets = false } = {})
 }
 
 function writable(data) {
-  const { id, created_by_id, created_by, created_date, updated_date, ...fields } = data;
+  const { id, created_by_id, created_by, created_date, updated_date, revision, deleted_at, ...fields } = data;
   return fields;
 }
 

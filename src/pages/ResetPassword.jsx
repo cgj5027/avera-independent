@@ -34,6 +34,9 @@ export default function ResetPassword() {
     }
   };
 
+  if (application.capabilities?.passwordReset === false) return (
+    <AuthLayout icon={Lock} title="Email recovery unavailable" subtitle="Email password recovery is not configured for this installation." footer={<Link to="/login">Back to log in</Link>} />
+  );
   if (!resetToken) {
     return (
       <AuthLayout

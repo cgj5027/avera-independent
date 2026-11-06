@@ -88,3 +88,42 @@ Local checkpoint results:
 The existing build warnings remain (Base44 configuration absent in this isolated
 workspace and the large frontend bundle). Stage 2 is based on the Stage 1 branch
 while PR #8 is still open; merge/rebase order must preserve that baseline.
+
+## Stage 3: independent server and durable storage
+
+Stage 2 GitHub CI passed before this stage began. The independent HTTP entry now
+uses a loopback Node server with local password accounts, HttpOnly sessions,
+validated ownership-scoped CRUD, cursor pagination, atomic batches and migrations.
+Both real SQLite and PostgreSQL adapters share the storage contract. Revisions,
+deletion markers and a change journal prepare future sync work without enabling it.
+Goal contributions, deterministic income projection and local feedback persistence
+are implemented; online-provider calls explicitly return unavailable until Stage 4.
+
+Use `npm run build:local` and `npm run start:local`; see
+[local runtime instructions and limitations](LOCAL_RUNTIME.md). The local build
+does not load the Base44 plugin or include SDK bootstrap chunks, and bundles the
+existing font and local branding. Compatibility code/dependencies remain for the
+transition; SDK retirement is a later gate.
+
+Local checkpoint:
+
+- 22 unit/integration files / 433 tests passed.
+- 21 native HTTP/database checks passed with temporary SQLite data and an isolated
+  PostgreSQL 16 container; no PostgreSQL cases were skipped.
+- 33 real independent browser cases passed: four widths, both themes, local
+  registration, durable bills, household updates, goal contributions, multi-income
+  sample seeding, accessibility/overflow, and full Node-process restart/login.
+  No Base44/external browser requests or browser exceptions were reported.
+- 200 compatibility browser fixture checks passed with zero reported axe violations.
+- Lint, frontend/backend/strict platform type checks, compatibility and independent
+  builds passed. The independent build has no Base44 configuration warning; both
+  retain the existing large-bundle warning.
+- npm audit: zero known vulnerabilities. Staged-diff secret scan: no leaks found.
+- Workflow YAML/shell syntax and `git diff --check` passed. CI now provisions a
+  disposable PostgreSQL service and runs native storage and real browser checks.
+
+Validation ran on Linux/Node 24. CI additionally exercises Node 22.18+; Windows and
+macOS packaging/manual accessibility remain later gates. Local accounts are not
+email-verified and have no recovery flow yet. Live integrations, encrypted backup,
+guided restore, Base44 data migration and production hosted acceptance are not
+claimed here. Stage 3 is stacked on Stage 2 (#9), which remains open.

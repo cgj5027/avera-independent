@@ -127,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     return updated;
   };
 
-  const logout = useCallback((shouldRedirect = true) => {
+  const logout = useCallback(async (shouldRedirect = true) => {
     if (user?.id) clearActivity(user.id);
     authEpoch.current++;
     setIsLoadingAuth(false);
@@ -138,12 +138,14 @@ export const AuthProvider = ({ children }) => {
     setAuthChecked(true);
     queryClientInstance.clear();
     sessionStorage.removeItem('avera_data_mode');
-    if (shouldRedirect) {
+    try { if (shouldRedirect) {
       // The active authentication adapter handles session cleanup and redirect.
-      application.auth.signOut(new URL('/login', window.location.origin).href);
+      await application.auth.signOut(new URL('/login', window.location.origin).href);
     } else {
       // Just remove the token without redirect
-      application.auth.signOut();
+      await application.auth.signOut();
+    } } catch {
+      setAuthError({ type: 'logout_failed', message: 'Sign out could not be completed. Please retry.' });
     }
   }, [user?.id]);
 

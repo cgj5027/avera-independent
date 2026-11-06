@@ -14,11 +14,16 @@
     "test:browser": "node tests/browser-smoke.cjs",
     "typecheck:backend": "tsc -p tsconfig.backend.json",
     "test:stage3:browser": "node tests/stage3-browser.cjs",
-    "typecheck:platform": "tsc -p tsconfig.platform.json"
+    "typecheck:platform": "tsc -p tsconfig.platform.json",
+    "build:local": "node scripts/build-local.mjs",
+    "start:local": "node --env-file-if-exists=.env.local --experimental-strip-types server/index.ts",
+    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts",
+    "test:local:browser": "node tests/local-runtime-browser.cjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.57",
     "@base44/vite-plugin": "^1.0.48",
+    "@fontsource/inter": "^5.3.0",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -65,6 +70,7 @@
     "lucide-react": "^0.475.0",
     "moment": "^2.30.1",
     "next-themes": "^0.4.4",
+    "pg": "^8.23.1",
     "react": "^18.2.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",
@@ -87,6 +93,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.13.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^6.0.5",
@@ -107,5 +114,8 @@
     "typescript": "^5.8.2",
     "vite": "^8.2.0",
     "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

@@ -1,5 +1,8 @@
 # Stage 2: application and configuration boundaries
 
+This records the Stage 2 checkpoint. Stage 3 now installs the independent HTTP
+adapter and durable server; see [current local runtime instructions](LOCAL_RUNTIME.md).
+
 The frontend uses `src/api/application.js`. Its typed ports are declared in
 `src/platform/contracts.ts`; only the composition root and the temporary Base44
 adapter know how the current backend is implemented. The existing SDK client and

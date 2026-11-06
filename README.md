@@ -5,6 +5,10 @@
 > [stage checkpoints](docs/STAGED_DELIVERY.md). Standalone storage, gateway
 > operation, new demo entry and recovery are being implemented in stages; the
 > baseline instructions and historical roadmap below do not certify them.
+>
+> Stage 3: [run the independent local preview](docs/LOCAL_RUNTIME.md) using
+> `npm run build:local` and `npm run start:local`. Online integrations and recovery
+> remain later gates; the instructions below describe the compatibility baseline.
 
 **Avera** is a household financial wellness and income-opportunity platform.
 Tagline: **Your finances. Your rules. Your control.**

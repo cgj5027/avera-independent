@@ -25,6 +25,9 @@ export default function ForgotPassword() {
     }
   };
 
+  if (application.capabilities?.passwordReset === false) return (
+    <AuthLayout icon={Mail} title="Email recovery unavailable" subtitle="Email password recovery is not configured for this installation." footer={<Link to="/login">Back to log in</Link>} />
+  );
   return (
     <AuthLayout
       icon={Mail}
