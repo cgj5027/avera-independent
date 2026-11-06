@@ -1,7 +1,7 @@
 // Portable business logic retained from the assessed working-branch baseline.
 import { RequestFailure } from './requestSafety.js';
 import { createJobArea } from './jobDistance.js';
-import { linkedInConfigured, searchLinkedIn } from './linkedInSource.js';
+import * as jobSource from './linkedInSource.js';
 /**
  * Opportunity source adapter (provider-neutral listing contract).
  *
@@ -238,7 +238,7 @@ async function searchViaWebSearch(context, profile, relatedRoles = false) {
 // live only here — never in the request handler or the UI.
 const PROVIDERS = {
     web_search: searchViaWebSearch,
-    linkedin: (context, profile) => searchLinkedIn(profile, context),
+    linkedin: (context, profile) => jobSource.searchLinkedIn(profile, context),
 };
 export function rankListings(rawList, profile, primaryProvider = null) {
     const level = EXPERIENCE_LEVELS.includes(profile.experience_level) ? profile.experience_level : 'entry_level';
@@ -311,7 +311,7 @@ export async function searchListings(context, profile, providerId = 'web_search'
 }
 /** LinkedIn is primary. Web search fills remaining slots or handles source failures. */
 async function searchCombined(context, profile) {
-    const providers = linkedInConfigured(context) ? ['linkedin', 'web_search'] : ['web_search'];
+    const providers = jobSource.linkedInConfigured(context) ? ['linkedin', 'web_search'] : ['web_search'];
     const area = createJobArea(profile, context.jobs.fetcher);
     await area.validate();
     const sources = [];

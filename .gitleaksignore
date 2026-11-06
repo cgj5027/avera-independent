@@ -4,3 +4,6 @@
 4c9131271e0aa6ca0b54e50fbe7369ffaa806936:src/pages/Overview.jsx:linkedin-client-id:192
 # Module import identifiers falsely match a LinkedIn client ID; no credential is present.
 4a0c09c1ee64449104b30caf28eb4deb6bf9fb24:base44/shared/opportunitySource.ts:linkedin-client-id:1
+# Same import-identifier false positive in the portable Stage 4 copy; no key.
+# Subsequent code uses a namespace import to avoid introducing this match again.
+fb6a02a1a4773152b7db0187d2769f96c2bc9278:server/integrations/logic/opportunitySource.js:linkedin-client-id:4

@@ -172,7 +172,9 @@ Local checkpoint on Linux/Node 24:
 - The 200-case compatibility browser matrix passed with no reported axe violations.
 - Lint, frontend/backend/strict platform checks, both builds and diff checks passed.
   Production and full dependency audits report zero known vulnerabilities.
-- Redacted Git-history and staged-diff secret scans passed. Existing large-bundle
+- Redacted Git-history and staged-source secret scans passed. A module import
+  repeated an existing LinkedIn-rule identifier false positive; only that exact
+  historical finding is ignored, and the import was rewritten. Existing large-bundle
   warnings remain; the compatibility build still reports missing Base44 config.
 
 **Status: implementation and fixture acceptance complete; live acceptance pending.**
