@@ -81,7 +81,32 @@ const assert=require('node:assert/strict');
    await page.getByRole('button',{name:'Save household preferences',exact:true}).click();
    assert.equal((await updated).status(),200);
    await page.getByText('Household preferences saved',{exact:true}).waitFor();
+   async function checkManualTransactions(profile=''){
+    const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value);
+    const month=new Date().toISOString().slice(0,7),tag=profile?'sample':'personal';
+    async function transactions(){const response=await context.request.post(url+'/api/v1/records/Transaction/query',{headers:{Origin:url},data:{query:{demo_profile:profile}}});assert(response.ok());return (await response.json()).items;}
+    const before=await transactions();
+    const total=kind=>Math.round(before.filter(row=>!row.exclude_from_cashflow&&row.date.startsWith(month)&&(kind==='income'?row.type==='income':row.type!=='income')).reduce((sum,row)=>sum+row.amount,0)*100)/100;
+    const expectedSpending=total('expense')+12.34,expectedIncome=total('income')+45.67;
+    await page.goto(url+'/bills-budget?tab=transactions');await page.getByRole('button',{name:'Add transaction',exact:true}).waitFor();
+    for(const [kind,amount] of [['expense','12.34'],['income','45.67']]){
+     await page.getByRole('button',{name:'Add transaction',exact:true}).click();const form=page.getByRole('dialog',{name:'Add manual transaction'});assert.equal(await page.getByRole('dialog').count(),1);
+     await form.getByLabel('Name',{exact:true}).fill('Fixture '+tag+' '+kind);await form.getByLabel('Amount',{exact:true}).fill(amount);
+     if(kind==='income'){await form.getByLabel('Type',{exact:true}).click();await page.getByRole('option',{name:'Income',exact:true}).click();}
+     if(!profile&&kind==='expense'){
+      await context.route('**/api/v1/records/Transaction',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Fixture save failure'})}),{times:1});
+      await form.getByRole('button',{name:'Add transaction',exact:true}).click();await form.getByRole('alert').waitFor();assert.equal(await form.getByLabel('Name',{exact:true}).inputValue(),'Fixture '+tag+' '+kind);assert.equal((await transactions()).length,before.length);
+     }
+     await form.getByRole('button',{name:'Add transaction',exact:true}).click();await form.waitFor({state:'hidden'});assert.equal(await page.getByRole('dialog').count(),0);await page.getByText('Fixture '+tag+' '+kind,{exact:true}).waitFor();
+    }
+    const saved=await transactions();assert.equal(saved.length,before.length+2);assert(saved.filter(row=>row.description?.startsWith('Fixture '+tag)).every(row=>row.source==='Manual'&&row.demo_profile===profile));
+    await page.reload();await page.getByText('Fixture '+tag+' expense',{exact:true}).waitFor();await page.getByText('Fixture '+tag+' income',{exact:true}).waitFor();
+    await page.getByRole('tab',{name:'Budget',exact:true}).click();await page.locator('dl').filter({has:page.locator('dt',{hasText:/^Spent in /})}).getByText(money(expectedSpending),{exact:true}).waitFor();
+    await page.goto(url+'/');await page.locator('section').filter({has:page.getByRole('heading',{name:'Income',exact:true})}).getByText(money(expectedIncome),{exact:true}).waitFor();
+    checks.push({theme,width,manualTransactions:tag,persistenceAndTotals:true});
+   }
    if(theme==='light'&&width===1440){
+    await checkManualTransactions();
     await page.goto(url+'/bills-budget');await page.getByRole('tab',{name:'Goals',exact:true}).click();
     await page.getByRole('button',{name:'Add goal',exact:true}).click();
     const goal=page.getByRole('dialog');await goal.getByLabel('Goal name').fill('Fixture reserve');await goal.getByLabel('Target amount').fill('1000');
@@ -99,6 +124,7 @@ const assert=require('node:assert/strict');
     await page.getByRole('button',{name:'Explore Multi-Income Household',exact:true}).click();
     await page.waitForURL(url+'/');
     await page.getByText('Sample data — Multi-Income Household',{exact:true}).first().waitFor();
+    await checkManualTransactions('multi_income');
     const own=await context.request.post(url+'/api/v1/records/Bill/query',{headers:{Origin:url},data:{query:{name:'Fixture rent'}}});
     assert.equal((await own.json()).items.length,1,'personal record survives sample seeding');
     const propertyResponse=await context.request.post(url+'/api/v1/records/Property/query',{headers:{Origin:url},data:{query:{demo_profile:'multi_income'}}});

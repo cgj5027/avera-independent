@@ -18,7 +18,6 @@ import BillSuggestions from '@/components/bills/BillSuggestions';
 import BillCard from '@/components/bills/BillCard';
 import BillDialog from '@/components/bills/BillDialog';
 import TransactionsTable from '@/components/bills/TransactionsTable';
-import ManualTransactionDialog from '@/components/bills/ManualTransactionDialog';
 import SuggestedBudgetCategories from '@/components/budget/SuggestedBudgetCategories';
 import CategoryCard from '@/components/budget/CategoryCard';
 import LinkedTransactionsDialog from '@/components/budget/LinkedTransactionsDialog';
@@ -47,7 +46,6 @@ export default function BillsBudget() {
   const [billDialog, setBillDialog] = useState({ open: false, bill: null });
   const [categoryDialog, setCategoryDialog] = useState({ open: false, category: null });
   const [logDialog, setLogDialog] = useState(null);
-  const [addTxnOpen, setAddTxnOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [linkedDialog, setLinkedDialog] = useState(null);
   const [budgetMonth, setBudgetMonth] = useState(() => calc.monthRange().key);
@@ -347,7 +345,7 @@ export default function BillsBudget() {
               categoryRemaining={remainingByCategory}
               busy={busy}
               onSaveTransaction={saveTransactionRow}
-              onAddTransaction={() => setAddTxnOpen(true)}
+              onAddTransaction={addManualTransaction}
               onSuggestCategories={suggestCategories}
             />
         </TabsContent>
@@ -376,12 +374,7 @@ export default function BillsBudget() {
           onSave={(payload) => logSpending(logDialog, payload)}
         />
       )}
-      <ManualTransactionDialog
-        open={addTxnOpen}
-        onOpenChange={setAddTxnOpen}
-        categories={categories}
-        onSave={addManualTransaction}
-      />
+
       {linkedDialog && (
         <LinkedTransactionsDialog
           open
