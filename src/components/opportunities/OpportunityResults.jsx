@@ -76,7 +76,7 @@ function OpportunityItem({ item }) {
           </a>
         )}
       </div>
-      <p className="mt-2 break-all text-sm text-muted-foreground">Source: {item.source_provider === 'linkedin' ? 'LinkedIn' : new URL(item.url).hostname} · Posting availability and freshness not verified</p>
+      <p className="mt-2 break-all text-sm text-muted-foreground">Source: {item.source_provider === 'linkedin' ? 'LinkedIn' : new URL(item.url).hostname} · {item.availability_checked_at ? `Posting checked ${new Date(item.availability_checked_at).toLocaleString()}. Availability can change; confirm at source.` : 'Posting availability and freshness not verified'}</p>
       {typeof item.match_score === 'number' && (
         <div className="mt-2 space-y-2 text-sm text-muted-foreground">
           <p>Match confidence: {item.match_confidence || 'low'}. Measures profile fit, not your chance of being hired.</p>
@@ -128,6 +128,7 @@ export default function OpportunityResults({ profile }) {
   const [partialResults, setPartialResults] = useState(false);
   const [sources, setSources] = useState([]);
   const [visibleCount, setVisibleCount] = useState(6);
+  const [availabilitySummary,setAvailabilitySummary] = useState(null);
   const [relatedRolesSearched,setRelatedRolesSearched] = useState(false);
   const hasProfile = Boolean(profile?.skills?.trim());
 
@@ -141,11 +142,13 @@ export default function OpportunityResults({ profile }) {
       setSources(result.sources);
       setVisibleCount(6);
       setRelatedRolesSearched(result.relatedRolesSearched);
+      setAvailabilitySummary(result.availabilitySummary);
       setStatus(result.items.length === 0 ? 'none' : 'live');
     } catch (error) {
       setFailureMessage(jobSearchErrorMessage(error));
       setItems([]);
       setRelatedRolesSearched(false);
+      setAvailabilitySummary(null);
       setStatus('unavailable');
     }
   };
@@ -172,6 +175,7 @@ export default function OpportunityResults({ profile }) {
         {status === 'live' && <StatusPill tone="success">Source-linked results</StatusPill>}
         {status === 'unavailable' && <StatusPill tone="warning">Search unavailable</StatusPill>}
         {status === 'none' && <StatusPill tone="neutral">No matches found</StatusPill>}
+        {availabilitySummary && <p className="w-full text-sm text-muted-foreground">Checked {availabilitySummary.checked} postings. Excluded {availabilitySummary.excluded_closed} closed or expired and {availabilitySummary.excluded_unverified} whose availability could not be confirmed. Inaccessible pages are not assumed closed.</p>}
         {relatedRolesSearched && (status === 'live' || status === 'none') && <StatusPill tone="neutral">Also searched related roles</StatusPill>}
       </div>
 
@@ -221,7 +225,7 @@ export default function OpportunityResults({ profile }) {
 
       {status === 'none' && (
         <p className="mt-4 text-base text-muted-foreground">
-          No matching postings were found for this profile. Try another preferred role or location in your work profile. A search can return no results; Avera does not create listings to fill the list.
+          {availabilitySummary ? 'No matching postings with confirmed availability were found.' : 'No matching postings were found for this profile.'} Try another preferred role or location in your work profile. A search can return no results; Avera does not create listings to fill the list.
         </p>
       )}
     </div>

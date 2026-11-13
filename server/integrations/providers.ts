@@ -1,3 +1,4 @@
+import { checkPostings } from './job-availability.ts';
 import { ApiError,invalid } from '../errors.ts';
 import { fetchJson,strictSchema,validateStructured } from './network.ts';
 import { PlaidFailure } from './logic/plaid.js';
@@ -19,7 +20,7 @@ export function directTransport(env:Env,vault:PrivateVault,fetcher:typeof fetch=
       model:env.OPENAI_MODEL??'gpt-4.1-mini',store:false,max_output_tokens:6000,
       input:[{role:'user',content:[{type:'input_text',text:input.prompt},...(file?[{type:'input_file',file_id:file.id}]:[])]}],
       text:{format:{type:'json_schema',name:'avera_response',strict:true,schema}},
-      ...(input.add_context_from_internet?{tools:[{type:'web_search_preview'}]}:{}),
+      ...(input.add_context_from_internet?{tools:[{type:'web_search_preview'}],tool_choice:'required'}:{}),
     });
     const output=(data.output??[]).flatMap((row:any)=>row.content??[]).filter((row:any)=>row.type==='output_text').map((row:any)=>row.text).join('');
     let result;try{result=JSON.parse(output);}catch{throw new ApiError(502,'INVALID_PROVIDER_RESPONSE','The AI provider returned an invalid response.');}
@@ -43,6 +44,10 @@ export function directTransport(env:Env,vault:PrivateVault,fetcher:typeof fetch=
       // Preserve the small allowlist of Plaid error codes needed for safe cursor retries.
       const allowed=['ITEM_LOGIN_REQUIRED','INVALID_ACCESS_TOKEN','ITEM_NOT_FOUND','PRODUCT_NOT_READY','TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION'];
       try{return await fetchJson(fetcher,'https://sandbox.plaid.com'+input.path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,client_id:env.PLAID_CLIENT_ID,secret:env.PLAID_SECRET})},2*1024*1024,20000,value=>new PlaidFailure(allowed.includes(value.error_code)?value.error_code:'PLAID_UNAVAILABLE'));}catch(error){if(error instanceof PlaidFailure)throw error;throw new PlaidFailure();}
+    }
+    if(operation==='jobs.verify'){
+      if(!Array.isArray(input?.candidates)||input.candidates.length>24)invalid('Invalid posting batch.');
+      return checkPostings(input.candidates);
     }
     if(operation==='jobs.fetch'){
       let url:URL;try{url=new URL(input.url);}catch{invalid('Invalid job provider request.');}

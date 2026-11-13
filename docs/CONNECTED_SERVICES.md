@@ -201,6 +201,10 @@ separate credential recovery, retention schedule and guided restore described in
 the approved plan still belong to Stage 6. Do not treat copying an active SQLite
 file as an implemented backup or remove Base44 yet.
 
+Job searches now [check source-page availability](JOB_AVAILABILITY.md) before
+returning independent results. Closed/expired and unconfirmed postings are omitted;
+the UI shows check times and exclusion counts. Availability can change afterward.
+
 ## Live acceptance still required from the owner/operator
 
 - Provision the gateway hosting/TLS and unique installation grants, or choose an

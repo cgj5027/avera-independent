@@ -200,3 +200,17 @@ health probes, so custom-domain deployments do not broaden gateway authorization
 Invalid ports/origins and unsupported public binding are rejected. Manual service,
 PostgreSQL and secret settings are documented in RENDER_SETUP.md. No Render
 resources or deployments are created by this change; live acceptance remains open.
+
+### Job search: availability filtering
+
+Following user acceptance, email verification/recovery, OpenAI answers (after API
+funding) and Plaid Sandbox imports were reported working by the owner. Job search
+returned stale/closed postings. Independent search now requires public-page
+availability evidence before returning a job, with expiration/closure checks,
+explicit treatment of unverified pages, bounded DNS-pinned HTTPS fetching and
+source-check timestamps/exclusion counts in the UI. OpenAI web search is required
+for discovery; optional LinkedIn results use the same availability gate.
+See JOB_AVAILABILITY.md for the algorithm, limitations and coordinated gateway /
+local-update steps. Live posting freshness must still be accepted after rollout.
+The stopped location-change proposal was not implemented; Photon reachability
+and distance-limited search remain a separate unresolved acceptance item.

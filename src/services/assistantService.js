@@ -3,7 +3,7 @@ import { getDataMode, getDemoWorkspace } from '@/lib/mode';
 
 // Browser checks complement server authorization; they cannot establish AI grounding.
 export const SERVICE_TIMEOUT_MS = 20000;
-export const JOB_SEARCH_TIMEOUT_MS = 60000;
+export const JOB_SEARCH_TIMEOUT_MS = 180000;
 export const MAX_QUESTION_LENGTH = 2000;
 
 async function authenticatedInvoke(name, payload, timeoutMs = SERVICE_TIMEOUT_MS) {
@@ -88,13 +88,16 @@ export async function searchOpportunities(profile, { includeMetadata = false } =
     distance_miles: Number.isFinite(item.distance_miles) && item.distance_miles >= 0 ? item.distance_miles : null,
     source_provider: item.source_provider === 'linkedin' ? 'linkedin' : 'web_search',
     publisher: typeof item.publisher === 'string' && item.publisher.trim() ? item.publisher : null,
+    availability_checked_at: item.availability_status === 'checked' && typeof item.availability_checked_at === 'string' && Number.isFinite(Date.parse(item.availability_checked_at)) ? item.availability_checked_at : null,
     posted_at: typeof item.posted_at === 'string' && item.posted_at.trim() ? item.posted_at : null,
     match_reasons: Array.isArray(item.match_reasons)
       ? item.match_reasons.filter((r) => typeof r === 'string' && r.trim()).slice(0, 3)
       : [],
   }));
   if (items.length !== data.opportunities.length) throw new Error('Search returned unverified listing data.');
-  return includeMetadata ? {items,relatedRolesSearched:data.related_roles_searched === true,partialResults:data.partial_results === true,sources:Array.isArray(data.sources) ? data.sources.filter(source => ['web_search','linkedin'].includes(source?.provider) && ['searched','unavailable'].includes(source?.status)) : []} : items;
+  const availability=data?.availability;
+  const availabilitySummary=availability&&['checked','excluded_closed','excluded_unverified'].every(key=>Number.isInteger(availability[key])&&availability[key]>=0&&availability[key]<=(key==='checked'?36:72))?availability:null;
+  return includeMetadata ? {items,availabilitySummary,relatedRolesSearched:data.related_roles_searched === true,partialResults:data.partial_results === true,sources:Array.isArray(data.sources) ? data.sources.filter(source => ['web_search','linkedin'].includes(source?.provider) && ['searched','unavailable'].includes(source?.status)) : []} : items;
 }
 /** Translate only known codes; never display raw upstream responses or credentials. */
 export function jobSearchErrorMessage(error) {

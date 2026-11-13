@@ -104,7 +104,7 @@ for(const dialect of ['sqlite','postgres'] as const){
       await request('/services/setAiConsent',{enabled:true},cookie);
       const jobs=await request('/services/searchJobOpportunities',{skills:'cooking',experience_level:'entry_level',work_mode:'any',job_type:'any'},cookie);
       assert.equal(jobs.status,200,JSON.stringify(jobs));assert.equal(jobs.data.source_provider,'combined');assert.deepEqual(jobs.data.sources.map((source:any)=>source.provider),['linkedin','web_search']);
-      assert.ok(f.calls.some(row=>row.url.includes('/realtime-linkedin-data/search')));assert.ok(f.calls.some(row=>row.body.tools?.[0]?.type==='web_search_preview'));
+      assert.ok(f.calls.some(row=>row.url.includes('/realtime-linkedin-data/search')));assert.ok(f.calls.some(row=>row.body.tools?.[0]?.type==='web_search_preview'&&row.body.tool_choice==='required'));
       await request('/services/setAiConsent',{enabled:false},cookie);
     });
     await t.test('imports banks with duplicate-safe retry, keeps cursor on failure, isolates owners and secrets',async()=>{
@@ -215,6 +215,7 @@ test('gateway grants isolate local accounts and replace bank secrets with owner-
  const call=async(actor:string,operation:string,input:any,bearer=token)=>{const res=await fetch(gateway.url+'/gateway/v1/invoke',{method:'POST',headers:{Authorization:'Bearer '+bearer,'Content-Type':'application/json'},body:JSON.stringify({actor,operation,input})});return {status:res.status,data:await res.json()};};
  assert.equal((await fetch(gateway.url+'/api/v1/auth/me')).status,404);
  assert.equal((await call('one','capabilities',{},'bad')).status,401);
+ const verification=await call('one','jobs.verify',{candidates:[{url:'https://127.0.0.1/private',title:'Fixture role',company:'Fixture employer'}]});assert.equal(verification.status,200);assert.equal(verification.data.result[0].status,'unverified');
  const exchanged=await call('one','plaid',{path:'/item/public_token/exchange',body:{public_token:'public-sandbox-fixture'}});assert.equal(exchanged.status,200);const handle=exchanged.data.result.access_token;assert.match(handle,/^access-sandbox-gateway-/);assert.doesNotMatch(JSON.stringify(exchanged),/fixture-private/);
  assert.equal((await call('one','plaid',{path:'/accounts/get',body:{access_token:handle}},tokenB)).status,404);
  assert.equal((await call('two','plaid',{path:'/accounts/get',body:{access_token:handle}})).status,404);
