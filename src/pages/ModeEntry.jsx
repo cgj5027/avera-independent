@@ -1,176 +1,63 @@
-import SignOutButton from '@/components/SignOutButton';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building2, FlaskConical, PencilLine, ShieldCheck, LoaderCircle } from 'lucide-react';
+import { Link,useNavigate,useLocation } from 'react-router-dom';
+import { ArrowRight,ChartNoAxesCombined,Receipt,ShieldCheck,LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { setDataMode as setMode } from '@/lib/mode';
-import { DEMO_PROFILES, DEMO_PROFILE_KEYS } from '@/services/demoProfiles';
+import { useAuth } from '@/lib/AuthContext';
+import { setDataMode } from '@/lib/mode';
+import { DEMO_PROFILES,DEMO_PROFILE_KEYS } from '@/services/demoProfiles';
 import { loadDemoProfile } from '@/services/demoMode';
+import { application } from '@/api/application';
+import SignOutButton from '@/components/SignOutButton';
 
-/**
- * Mode-entry onboarding (design system §21) with the Stage 3B Demo Mode
- * experience: Plaid Sandbox test-bank connection as a demo profile,
- * preconfigured demo profiles, or manual entry. The profile datasets are
- * Avera-owned sample data, always labeled as such.
- */
-export default function ModeEntry() {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [expanded, setExpanded] = useState(null); // 'plaid' | 'profiles' | null
-  const [busyKey, setBusyKey] = useState(null); // `${profile}:${plaid ? 'plaid' : 'local'}`
-  const [error, setError] = useState('');
-
-  const startDemo = async (profileKey, viaPlaid) => {
-    if (busyKey) return;
-    setBusyKey(`${profileKey}:${viaPlaid ? 'plaid' : 'local'}`);
-    setError('');
-    setMode('demo');
-    try {
-      const result = await loadDemoProfile(profileKey, { viaPlaid });
-      if (result.warning) toast({ title: 'Loaded sample data', description: result.warning });
-      navigate('/');
-    } catch {
-      setError('Demo Mode could not be set up. Please try again.');
-    } finally {
-      setBusyKey(null);
-    }
-  };
-
-  const expand = (which) => setExpanded((current) => (current === which ? null : which));
-
-  const profileRow = (profileKey, viaPlaid) => {
-    const profile = DEMO_PROFILES[profileKey];
-    const busy = busyKey === `${profileKey}:${viaPlaid ? 'plaid' : 'local'}`;
-    return (
-      <div
-        key={profileKey}
-        className="flex flex-col gap-3 rounded-xl border border-border bg-surface-subtle p-4 sm:flex-row sm:items-center"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-selected text-base font-semibold text-primary">
-          {profile.letter}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-heading text-base font-semibold text-foreground">{profile.label}</span>
-          <span className="mt-0.5 block text-sm text-muted-foreground">{profile.tagline}</span>
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          className="min-h-9 shrink-0 rounded-lg"
-          onClick={() => startDemo(profileKey, viaPlaid)}
-          disabled={Boolean(busyKey)}
-        >
-          {busy && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />}
-          {viaPlaid ? 'Connect as this profile' : 'Load profile'}
-        </Button>
-      </div>
-    );
-  };
-
-  const cards = [
-    {
-      key: 'plaid',
-      icon: Building2,
-      title: 'Connect a Test Bank using Plaid Sandbox',
-      description:
-        'Link a simulated bank as one of the demo profiles. Uses the real Plaid Sandbox flow with simulated funds — no real credentials, ever.',
-      expandable: true,
-    },
-    {
-      key: 'profiles',
-      icon: FlaskConical,
-      title: 'Explore a Preconfigured Demo Profile',
-      description:
-        'Load one of three ready-made financial scenarios as labeled Avera sample data and explore every feature.',
-      expandable: true,
-    },
-    {
-      key: 'manual',
-      icon: PencilLine,
-      title: 'Start using Avera today',
-      description: 'Ready to get started? Enter your own income and bills to build your financial plan.',
-      onClick: () => {
-        setMode('manual');
-        navigate('/bills-budget');
-      },
-    },
-  ];
-
-  return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <header className="flex flex-wrap items-center gap-3 px-4 py-5 sm:px-8">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground">
-          A
-        </span>
-        <div>
-          <p className="text-lg font-semibold tracking-tight text-foreground">Avera</p>
-          <p className="text-sm text-muted-foreground">Your finances. Your rules. Your control.</p>
-        </div>
-        <div className="ml-auto"><SignOutButton /></div>
-      </header>
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-12 pt-8 sm:px-8">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Get started with Avera
-        </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p className="max-w-xl text-base text-muted-foreground">
-            Explore with sample data, connect a test bank, or get started with your own information.
-          </p>
-        </div>
-
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {cards.map((card) => (
-            <div
-              key={card.key}
-              className="flex min-h-48 flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
-                <card.icon className="h-5 w-5 text-primary" aria-hidden="true" />
-              </span>
-              <span className="mt-3 font-heading text-lg font-semibold text-foreground">{card.title}</span>
-              <span className="mt-1 text-base text-muted-foreground">{card.description}</span>
-              <Button
-                type="button"
-                variant={card.expandable ? 'outline' : 'default'}
-                className="mt-auto"
-                aria-expanded={card.expandable ? expanded === card.key : undefined}
-                onClick={() => (card.expandable ? expand(card.key) : card.onClick())}
-                disabled={Boolean(busyKey)}
-              >
-                {card.key === 'plaid' && (expanded === 'plaid' ? 'Hide profiles' : 'Choose a profile')}
-                {card.key === 'profiles' && (expanded === 'profiles' ? 'Hide profiles' : 'Pick a profile')}
-                {card.key === 'manual' && 'Enter my information'}
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        {expanded && (
-          <section className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6" aria-label="Demo profiles">
-            <h2 className="font-heading text-base font-semibold text-foreground">
-              {expanded === 'plaid' ? 'Connect a test bank as a demo profile' : 'Load a preconfigured demo profile'}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {expanded === 'plaid'
-                ? 'Accounts and transactions arrive through the Plaid Sandbox connection; bills, budgets, and goals are labeled Avera sample data.'
-                : 'Everything is Avera sample data, labeled as such throughout the app — never presented as a bank import.'}
-            </p>
-            <div className="mt-4 space-y-3">{DEMO_PROFILE_KEYS.map((key) => profileRow(key, expanded === 'plaid'))}</div>
-          </section>
-        )}
-
-        {error && (
-          <p role="alert" className="mt-4 text-base text-danger-text">
-            {error}
-          </p>
-        )}
-
-        <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-success-text" aria-hidden="true" />
-          No payment execution, transfers, or banking authorization — Avera never moves your money.
-        </p>
-      </main>
-    </div>
-  );
+/** One landing page: personal finances first, a secondary sample-data disclosure. */
+export default function ModeEntry(){
+ const {user,startSample,leaveSample}=useAuth();
+ const navigate=useNavigate();
+ const query=useLocation().search;
+ const [expanded,setExpanded]=useState(new URLSearchParams(query).get('sample')==='1'),[busy,setBusy]=useState(''),[error,setError]=useState('');
+ const personal=async()=>{
+  if(busy)return;setBusy('personal');setError('');
+  try{if(user?.is_sample)await leaveSample();setDataMode('manual');navigate(user&&!user.is_sample?'/':'/register');}
+  catch{setError('Unable to switch right now. Please retry.');setBusy('');}
+ };
+ const sample=async profile=>{
+  if(busy)return;setBusy(profile);setError('');
+  try{if(!user){if(!application.auth.startSample){navigate('/login?returnTo=%2Fwelcome');return;}await startSample();}
+   await loadDemoProfile(profile);navigate('/');
+  }catch{setError('Sample data could not be loaded. Your previous workspace has been kept. Please retry.');setBusy('');}
+ };
+ return <div className="min-h-dvh bg-background">
+  <a href="#landing-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-3">Skip to main content</a>
+  <header className="border-b border-border bg-surface">
+   <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <Link to="/welcome" className="flex min-h-11 items-center gap-3 text-xl font-semibold text-foreground"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">A</span>Avera</Link>
+    {user&&!user.is_sample?<SignOutButton/>:<Link to="/login" className="rounded-lg px-3 py-3 font-medium text-primary underline-offset-4 hover:underline">Sign in</Link>}
+   </div>
+  </header>
+  <main id="landing-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-20">
+   <div className="grid items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
+    <section aria-labelledby="landing-title">
+     <p className="text-sm font-semibold uppercase tracking-widest text-primary">Your finances. Your direction.</p>
+     <h1 id="landing-title" className="mt-4 max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">A clearer view of your money.</h1>
+     <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">Bring your bills, budget and goals together. Understand where you stand today and plan your next step with confidence.</p>
+     <Button className="mt-7 min-h-12 rounded-xl px-6 text-base" onClick={personal} disabled={Boolean(busy)}>Get started<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true"/></Button>
+     <p className="mt-3 text-sm text-muted-foreground">{user&&!user.is_sample?'Continue with your personal finances.':'Create your account to save your own financial information.'}</p>
+     <button type="button" aria-expanded={expanded} aria-controls="sample-scenarios" onClick={()=>setExpanded(!expanded)} disabled={Boolean(busy)} className="mt-5 min-h-11 rounded-lg text-base font-medium text-primary underline underline-offset-4">{expanded?'Hide sample data':'Try sample data'}</button>
+     <p className="text-sm text-muted-foreground">Explore three scenarios without connecting a bank. {application.capabilities?.sampleWorkspaces?'No registration needed.':'Sign in to explore sample data.'}</p>
+    </section>
+    <aside aria-label="Plan with Avera" className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
+     <h2 className="text-xl font-semibold text-foreground">Space to see the whole picture</h2>
+     {[{icon:Receipt,title:'Everyday clarity',text:'Keep upcoming bills and monthly spending in view.'},{icon:ChartNoAxesCombined,title:'Room to plan ahead',text:'Connect today’s choices to your goals and yearly plan.'},{icon:ShieldCheck,title:'Your information, your choice',text:'Keep records on your installation. Choose when to use connected services.'}].map(item=><div key={item.title} className="mt-6 flex gap-3"><item.icon className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true"/><div><h3 className="font-semibold text-foreground">{item.title}</h3><p className="mt-1 text-base text-muted-foreground">{item.text}</p></div></div>)}
+    </aside>
+   </div>
+   {expanded&&<section id="sample-scenarios" aria-labelledby="sample-heading" className="mt-10 rounded-2xl border border-border bg-surface p-5 sm:p-7">
+    <h2 id="sample-heading" className="text-xl font-semibold text-foreground">Choose a sample scenario</h2>
+    <p className="mt-2 text-muted-foreground">Fictional finances, clearly labeled throughout. Your personal records stay separate. Returning to a scenario keeps your changes; reset is a separate action.</p>
+    <div className="mt-5 grid gap-4 md:grid-cols-3">{DEMO_PROFILE_KEYS.map(key=><div key={key} className="flex flex-col rounded-xl border border-border p-5"><h3 className="font-semibold text-foreground">{DEMO_PROFILES[key].label}</h3><p className="mb-5 mt-2 flex-1 text-sm text-muted-foreground">{DEMO_PROFILES[key].tagline}</p><Button variant="outline" className="min-h-11" onClick={()=>sample(key)} disabled={Boolean(busy)} aria-label={`Explore ${DEMO_PROFILES[key].label}`}>{busy===key&&<LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true"/>}Explore scenario</Button></div>)}</div>
+    {busy&&<p role="status" className="mt-4 text-muted-foreground">Preparing your workspace…</p>}
+   </section>}
+   {error&&<p role="alert" className="mt-5 text-danger-text">{error}</p>}
+   <p className="mt-12 border-t border-border pt-6 text-sm text-muted-foreground">Avera helps you plan. It never executes payments or transfers.</p>
+  </main>
+ </div>;
 }

@@ -77,7 +77,7 @@ for(const dialect of ['sqlite','postgres'] as const){
       assert.deepEqual(box.open(encrypted),{secret:'private-fixture'});
       assert.throws(()=>new SecretBox(Buffer.alloc(32,8)).open(encrypted),/could not be read/);
       const rows=await db.transaction(tx=>tx.query('SELECT version FROM schema_migrations ORDER BY version'));
-      assert.deepEqual(rows.map(row=>row.version),[1,2]);
+      assert.deepEqual(rows.map(row=>row.version),[1,2,3]);
     });
     await t.test('blocks AI by default, sends only owned dataset context after consent, supports revocation',async()=>{
       await request('/records/Bill',{name:'OWNED-ordinary',amount:10},cookie);

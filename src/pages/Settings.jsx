@@ -1,3 +1,4 @@
+import GuestConnectedState from '@/components/states/GuestConnectedState';
 import ConnectedServices from '@/components/settings/ConnectedServices';
 import AccountNameForm from '@/components/settings/AccountNameForm';
 import { Link } from 'react-router-dom';
@@ -18,7 +19,7 @@ export default function Settings() {
       <PageHeader title="Settings" subtitle="Profile, household, connections, and appearance." />
       <div className="space-y-4">
         <SettingSection title="Account" description="Your Avera account details.">
-          {user ? (
+          {user && !user.is_sample ? (
             <div className="space-y-4">
               <AccountNameForm key={user.id} />
               <div>
@@ -27,9 +28,9 @@ export default function Settings() {
               </div>
             </div>
           ) : (
-            <p className="text-base text-muted-foreground">Loading your profile…</p>
+            <p className="text-base text-muted-foreground">Sample visitor — no account or personal information required.</p>
           )}
-          {user && (
+          {user && !user.is_sample && (
             <Button variant="outline" className="mt-4 min-h-11 rounded-xl" onClick={() => logout()}>
               Sign out
             </Button>
@@ -44,18 +45,18 @@ export default function Settings() {
           <HouseholdForm />
         </SettingSection>
 
-        <ConnectedServices />
+        {user?.is_sample?<GuestConnectedState/>:<ConnectedServices />}
 
         <SettingSection title="Bank connections" description="Simulated connections only in this stage.">
-          <BankConnections />
+          {user?.is_sample?<p className="text-muted-foreground">Create an account to use connected services.</p>:<details><summary className="min-h-11 cursor-pointer py-3 font-medium">Advanced: Plaid Sandbox testing</summary><BankConnections/></details>}
         </SettingSection>
 
-        <SettingSection title="Demo controls" description="Data mode for this session.">
+        <SettingSection title="Sample data" description="Keep sample scenarios separate from personal finances.">
           <ModeIndicator variant="inline" />
           <p className="mt-3 text-base text-muted-foreground">
             The selected mode is remembered on this device. Your financial records and private demo workspaces are saved to your account.{' '}
-            <Link to="/welcome" className="font-medium text-primary underline underline-offset-2">
-              View mode options
+            <Link to="/welcome?sample=1" className="font-medium text-primary underline underline-offset-2">
+              Choose a sample scenario
             </Link>
           </p>
         </SettingSection>
@@ -63,7 +64,7 @@ export default function Settings() {
         <SettingSection title="Privacy" description="You stay in control of your information.">
           <p className="flex items-start gap-2 text-base text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
-            Avera never executes payments or authorizes transfers. Demo reset removes only your demo workspace; it does not delete your account or ordinary records. Contact the app team for account deletion and retention details.
+            Avera never executes payments or authorizes transfers. Sample reset replaces only the active scenario; it does not delete your account or ordinary records. Contact the app team for account deletion and retention details.
           </p>
         </SettingSection>
 

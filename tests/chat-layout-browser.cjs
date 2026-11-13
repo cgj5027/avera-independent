@@ -74,11 +74,11 @@ const assert = require('node:assert/strict');
     await page.goto(base + '/ask-avera');
     await page.getByRole('heading', { name: 'Ask Avera', exact: true }).waitFor();
     if (size.mode === 'demo') {
-      const disclosure = page.locator('summary').filter({ hasText: 'Demo Mode' });
+      const disclosure = page.locator('summary').filter({ hasText: 'Sample data —' });
       await disclosure.click();
-      assert(await page.getByRole('button', { name: 'Reset demo profile', exact: true }).isVisible(), 'demo controls retained');
+      assert(await page.getByRole('button', { name: 'Reset sample scenario', exact: true }).isVisible(), 'demo controls retained');
       await disclosure.click();
-      assert(!(await page.getByRole('button', { name: 'Reset demo profile', exact: true }).isVisible()), 'compact demo bar leaves room for chat');
+      assert(!(await page.getByRole('button', { name: 'Reset sample scenario', exact: true }).isVisible()), 'compact demo bar leaves room for chat');
     }
     await exercise(page, 'page');
     if (size.width === 1440) {

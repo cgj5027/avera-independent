@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,11 +27,12 @@ import LogSpendingDialog from '@/components/budget/LogSpendingDialog';
 import GoalsSection from '@/components/goals/GoalsSection';
 import { listRecords, createRecord, updateRecord, deleteRecord, logGoalContribution, assignTransactionCategory } from '@/services/dataService';
 import * as calc from '@/services/financialCalculations';
-import { importedTransactions, estimateBillCandidates, normalizeName } from '@/services/plaidEstimates';
 import { formatCurrency, monthLabel, todayISO } from '@/utils/format';
 
 /** Bills & Budget: recurring bill management plus monthly budget categories. */
 export default function BillsBudget() {
+  const [params,setParams]=useSearchParams();
+  const selectedTab=['bills','budget','goals','transactions'].includes(params.get('tab'))?params.get('tab'):'bills';
   const [bills, setBills] = useState(null);
   const [categories, setCategories] = useState(null);
   const [transactions, setTransactions] = useState(null);
@@ -223,12 +225,6 @@ export default function BillsBudget() {
   const limitsTotal = calc.budgetLimitsTotal(categories);
   const spentTotal = calc.spentInMonth(transactions, null, range);
 
-  /* Combined linked-account transactions get their own tab, next to the bills they can become. */
-  const linkedTransactions = importedTransactions(transactions);
-  const recurringCount = estimateBillCandidates(linkedTransactions).filter(
-    (c) => !bills.some((b) => normalizeName(b.name) === normalizeName(c.name))
-  ).length;
-
   const remainingByCategory = {};
   for (const c of categories) {
     remainingByCategory[c.name] = (Number(c.monthly_limit) || 0) - calc.spentInMonth(transactions, c.name, range);
@@ -243,21 +239,12 @@ export default function BillsBudget() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader title="Bills & Budget" subtitle="Due dates, recurring bills, and category budgets." />
-      <Tabs defaultValue="bills">
+      <Tabs value={selectedTab} onValueChange={tab=>setParams({tab},{replace:true})}>
         <TabsList className="mb-6 flex h-auto flex-wrap gap-1">
           <TabsTrigger value="bills" className="min-h-11 rounded-xl px-4">Bills</TabsTrigger>
           <TabsTrigger value="budget" className="min-h-11 rounded-xl px-4">Budget</TabsTrigger>
           <TabsTrigger value="goals" className="min-h-11 rounded-xl px-4">Goals</TabsTrigger>
-          {transactions.length > 0 && (
-            <TabsTrigger value="transactions" className="min-h-11 rounded-xl px-4">
-              Transactions
-              {recurringCount > 0 && (
-                <span className="ml-2 rounded-full bg-warning-surface px-2 py-0.5 text-xs font-medium text-warning">
-                  {recurringCount} recurring
-                </span>
-              )}
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="transactions" className="min-h-11 rounded-xl px-4">Transactions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bills" className="mt-0 space-y-4">
@@ -352,8 +339,7 @@ export default function BillsBudget() {
           />
         </TabsContent>
 
-        {transactions.length > 0 && (
-          <TabsContent value="transactions" className="mt-0">
+        <TabsContent value="transactions" className="mt-0">
             <TransactionsTable
               transactions={transactions}
               accounts={accounts.filter((a) => a.plaid_item_id)}
@@ -364,8 +350,7 @@ export default function BillsBudget() {
               onAddTransaction={() => setAddTxnOpen(true)}
               onSuggestCategories={suggestCategories}
             />
-          </TabsContent>
-        )}
+        </TabsContent>
       </Tabs>
 
       <BillDialog

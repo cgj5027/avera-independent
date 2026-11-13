@@ -8,6 +8,7 @@ import { integrationRuntime } from './integrations/runtime.ts';
 import { googleAuth } from './oauth.ts';
 import { AuthService } from './auth.ts';
 import { ApiError, invalid } from './errors.ts';
+import { sampleWorkspace } from './samples.ts';
 import { object } from './validation.ts';
 
 async function jsonBody(req: IncomingMessage,maximum=1024*1024) {
@@ -61,6 +62,20 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         const path=url.pathname;
         if (method==='GET' && path==='/api/v1/health') return send(res,200,{ok:true});
         if (method==='GET' && path==='/api/v1/settings/public') return send(res,200,{id:'avera-independent',public_settings:{auth:{email_verification:integrations?.authEmail??false,oauth:google?.enabled??false,password_reset:integrations?.authEmail??false}}});
+        if(method==='POST'&&path==='/api/v1/auth/sample'){
+          await jsonBody(req);auth.limit(req.socket.remoteAddress??'local');
+          let current;try{current=await auth.current(cookie(req));}catch{/* No personal session. */}
+          if(current&&!current.is_sample)return send(res,200,current);
+          const remembered=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('avera_sample='))?.slice('avera_sample='.length);
+          const result=await auth.startSample(current?.is_sample?cookie(req):remembered);
+          res.setHeader('Set-Cookie',[sessionCookie(result.token),sessionCookie(result.token).replace('avera_session=','avera_sample=')]);
+          return send(res,200,result.data);
+        }
+        if(method==='POST'&&path==='/api/v1/auth/sample/leave'){
+          await jsonBody(req);const current=await auth.current(cookie(req));
+          if(current.is_sample)res.setHeader('Set-Cookie',sessionCookie('').replace('Max-Age=28800','Max-Age=0'));
+          return send(res,200,{left:true});
+        }
         if (method==='POST' && (path==='/api/v1/auth/register' || path==='/api/v1/auth/login')) {
           auth.limit(req.socket.remoteAddress ?? 'local');
           const result=path.endsWith('/register') ? await auth.register(await jsonBody(req)) : await auth.signIn(await jsonBody(req));
@@ -92,19 +107,27 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         }
         const user=await auth.current(cookie(req));
         if (method==='GET' && path==='/api/v1/auth/me') return send(res,200,user);
+        if(user.is_sample&&!(path.startsWith('/api/v1/records/')||['/api/v1/services/sampleWorkspace','/api/v1/services/projectAnnualIncome','/api/v1/services/logGoalContribution'].includes(path)))throw new ApiError(403,'SAMPLE_ONLY','Create an account to use connected services.');
         if (method==='PATCH' && path==='/api/v1/auth/me') return send(res,200,await auth.update(user.id,await jsonBody(req)));
         const match=path.match(/^\/api\/v1\/records\/([A-Za-z]+)(?:\/([^/]+))?$/);
         if (match) {
           const name=match[1], id=match[2];
           if (method==='POST' && id==='query') { const data=await jsonBody(req); return send(res,200,await store.list(user.id,name,data.query,data.options)); }
-          if (method==='POST' && id==='bulk') return send(res,201,await store.createMany(user.id,name,(await jsonBody(req)).rows));
-          if (method==='POST' && !id) return send(res,201,await store.create(user.id,name,await jsonBody(req)));
+          if (method==='POST' && id==='bulk') {
+            const data=await jsonBody(req);if(user.is_sample&&(!Array.isArray(data.rows)||data.rows.length>200||data.rows.some((row:any)=>!['early_career','multi_income','financial_improvement'].includes(row?.demo_profile))))invalid('Sample records need a scenario.');
+            return send(res,201,await store.createMany(user.id,name,data.rows));
+          }
+          if (method==='POST' && !id) {
+            const data=await jsonBody(req);if(user.is_sample&&!['early_career','multi_income','financial_improvement'].includes(data.demo_profile))invalid('Sample records need a scenario.');
+            return send(res,201,await store.create(user.id,name,data));
+          }
           if (method==='GET' && id) return send(res,200,await store.get(user.id,name,id));
           if (method==='PATCH' && id) return send(res,200,await store.update(user.id,name,id,await jsonBody(req)));
           if (method==='DELETE' && id) { await jsonBody(req); return send(res,200,await store.delete(user.id,name,id)); }
         }
         if (method==='POST' && path.startsWith('/api/v1/services/')) {
           const name=path.slice('/api/v1/services/'.length), data=await jsonBody(req,name==='parseResume'?8*1024*1024:1024*1024);
+          if(name==='sampleWorkspace')return send(res,200,await sampleWorkspace(store,user.id,data));
           if (name==='logGoalContribution') return send(res,200,await store.contribution(user.id,data));
           if (name==='projectAnnualIncome') {
             const periods: Record<string,number>={weekly:52,biweekly:26,semimonthly:24,monthly:12,quarterly:4,semiannual:2,annual:1};

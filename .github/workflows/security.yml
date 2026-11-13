@@ -83,3 +83,4 @@ jobs:
         run: |
           export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
           npm run test:local:browser
+          npm run test:stage5:browser

@@ -35,43 +35,32 @@ const assert=require('node:assert/strict');
   for(const path of (process.env.AUDIT_PATHS ? process.env.AUDIT_PATHS.split(',') : ['/','/bills-budget','/yearly-plan','/properties','/settings','/ask-avera'])) {
    await page.goto((process.env.AUDIT_BASE_URL||'http://127.0.0.1:5173')+path);await page.getByRole('heading').first().waitFor();await page.waitForTimeout(150);
    if(path==='/') {
-    assert((await page.locator('dl').filter({has:page.locator('dt',{hasText:'Available cash'})}).locator('dd').innerText()).includes('$1,000.00'),'liquid cash excludes investments and credit debt');
-    assert((await page.locator('dl').filter({has:page.locator('dt',{hasText:'Total debts'})}).locator('dd').innerText()).includes('$50,200.00'),'credit debt increases mortgage liabilities');
-    await page.getByRole('button',{name:/Accounts/}).click();await page.getByText(/Balance as of/).waitFor();}
-   if(path==='/ask-avera') {await page.getByLabel('Ask Avera',{exact:true}).fill('My demo finances?');await page.getByRole('button',{name:'Send question'}).click();await page.getByText(/Fixture response only/).waitFor();}
-   await check(path);
-   if(path==='/bills-budget') {for(const tab of ['Budget','Goals','Transactions']) {await page.getByRole('tab',{name:tab,exact:true}).click();await check(path,tab+' tab');if(tab==='Transactions'){assert.equal(await page.getByRole('columnheader',{name:'Status',exact:true}).count(),0);await page.getByText('Filter transactions',{exact:true}).click();await check(path,'Transaction filters');await page.getByRole('textbox',{name:'Search transactions'}).fill('nothing-matches-fixture');await page.getByText('No transactions match these filters.').waitFor();await page.getByRole('button',{name:'Clear filters',exact:true}).click();await page.getByRole('table',{name:'Transactions',exact:true}).waitFor();await page.screenshot({path:`/tmp/avera-transactions-${theme}-${width}.png`,fullPage:true,animations:'disabled'});}}}
-   if(path==='/ask-avera') await page.locator('summary').filter({hasText:'Demo Mode'}).click();
-   await page.getByRole('button',{name:'Reset demo profile'}).click();await page.getByRole('dialog',{name:'Reset demo profile?'}).waitFor();await page.getByRole('button',{name:'Reset demo',exact:true}).waitFor();await check(path,'reset confirmation');await page.keyboard.press('Escape');await page.getByRole('dialog').waitFor({state:'hidden'});
-   await page.getByRole('button',{name:'Exit Demo Mode'}).click();
-   const exitDialog=page.getByRole('dialog',{name:'Exit demo mode?'});
-   await exitDialog.waitFor();
-   await exitDialog.evaluate(async el=>Promise.all(el.getAnimations({subtree:true}).filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{}))));
-   const rect=await exitDialog.boundingBox();
-   assert(Math.abs(rect.x+rect.width/2-width/2)<2,'exit dialog horizontally centered');
-   assert(Math.abs(rect.y+rect.height/2-450)<2,'exit dialog vertically centered');
-   if(path==='/properties') await page.screenshot({path:`/tmp/avera-exit-${theme}-${width}.png`,animations:'disabled'});
-   await check(path,'exit confirmation');
-   await page.getByRole('button',{name:'Keep exploring'}).click();
-   await exitDialog.waitFor({state:'hidden'});
-   if(path==='/ask-avera') await page.locator('summary').filter({hasText:'Demo Mode'}).click();
-   if(path==='/settings') {
-    await page.getByRole('button',{name:'Reconnect',exact:true}).waitFor();
-    await page.getByRole('button',{name:'Sync now'}).click();await page.getByRole('alert').filter({hasText:/Some connections/}).waitFor();await check(path,'failed sync');
-    await page.getByRole('button',{name:'Disconnect Fixture bank'}).click();await page.getByRole('dialog').waitFor();await check(path,'disconnect confirmation');
-    await page.getByRole('button',{name:'Delete',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});
-    await page.getByText(/No test banks connected/).waitFor();await check(path,'disconnected');
-    await page.screenshot({path:`/tmp/avera-stage3-settings-${theme}-${width}.png`,fullPage:true,animations:'disabled'});
+    assert((await page.locator('dl').filter({has:page.locator('dt',{hasText:'Available cash'})}).locator('dd').innerText()).includes('$1,000.00'));
+    assert((await page.locator('dl').filter({has:page.locator('dt',{hasText:'Total debts'})}).locator('dd').innerText()).includes('$50,200.00'));
+    await page.getByRole('button',{name:/Accounts/}).click();await page.getByText(/Balance as of/).waitFor();
    }
+   if(path==='/ask-avera'){await page.getByLabel('Ask Avera',{exact:true}).fill('My sample finances?');await page.getByRole('button',{name:'Send question'}).click();await page.getByText(/Fixture response only/).waitFor();}
+   await check(path);
+   if(width<1280){await page.getByRole('button',{name:'Open navigation'}).click();await page.getByRole('dialog').waitFor();assert.equal(await page.getByRole('navigation',{name:'Mobile primary'}).getByRole('link').count(),7);await check(path,'mobile navigation');await page.keyboard.press('Escape');await page.getByRole('dialog').waitFor({state:'hidden'});}
+   if(path==='/bills-budget'){
+    for(const tab of ['Budget','Goals','Transactions']){await page.getByRole('tab',{name:tab,exact:true}).click();await check(path,tab+' tab');}
+    assert.equal(await page.getByRole('columnheader',{name:'Status',exact:true}).count(),0);
+    await page.getByText('Filter transactions',{exact:true}).click();await check(path,'Transaction filters');
+    await page.getByRole('textbox',{name:'Search transactions'}).fill('nothing-matches-fixture');await page.getByText('No transactions match these filters.').waitFor();await page.getByRole('button',{name:'Clear filters',exact:true}).click();
+   }
+   await page.locator('summary').filter({hasText:'Sample data —'}).click();await check(path,'sample controls');
+   await page.getByRole('button',{name:'Reset sample scenario'}).click();await page.getByRole('dialog',{name:'Reset sample scenario?'}).waitFor();await check(path,'reset confirmation');await page.keyboard.press('Escape');await page.getByRole('dialog').waitFor({state:'hidden'});
+   await page.locator('summary').filter({hasText:'Sample data —'}).click();
+   if(path==='/settings'){
+    await page.getByText('Advanced: Plaid Sandbox testing',{exact:true}).click();await page.getByRole('button',{name:'Sync now'}).click();await page.getByRole('alert').filter({hasText:/Some connections/}).waitFor();await check(path,'failed sync');
+    await page.getByRole('button',{name:'Disconnect Fixture bank'}).click();await page.getByRole('dialog').waitFor();await check(path,'disconnect confirmation');await page.getByRole('button',{name:'Delete',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await check(path,'disconnected');
+   }
+   await page.screenshot({path:`/tmp/avera-stage5-${path.replaceAll('/','')||'overview'}-${theme}-${width}.png`,fullPage:true,animations:'disabled'});
   }
-  if(!process.env.AUDIT_PATHS) await page.locator('summary').filter({hasText:'Demo Mode'}).click();
-  await page.getByRole('button',{name:'Exit Demo Mode'}).click();
-  await page.getByRole('button',{name:'Exit demo',exact:true}).click();
-  await page.getByRole('heading',{name:'Get started with Avera'}).waitFor();
-  assert(new URL(page.url()).pathname==='/welcome','exit navigates directly to Get Started');
-  const choices=await page.locator('main .mt-8.grid button').allTextContents();
-  assert.deepEqual(choices,['Choose a profile','Pick a profile','Enter my information']);
-  await check('/welcome','after exit');
+  await page.locator('summary').filter({hasText:'Sample data —'}).click();await page.getByRole('button',{name:'Return to personal finances'}).click();await page.waitForURL((process.env.AUDIT_BASE_URL||'http://127.0.0.1:5173')+'/');
+  await page.goto((process.env.AUDIT_BASE_URL||'http://127.0.0.1:5173')+'/welcome');await page.getByRole('heading',{name:'A clearer view of your money.'}).waitFor();await check('/welcome','landing');
+  assert.equal(await page.getByRole('button',{name:/Explore Early Career/}).count(),0);
+  await page.getByRole('button',{name:'Try sample data'}).click();await page.getByRole('button',{name:'Explore Early Career Professional'}).waitFor();await check('/welcome','sample picker');
   assert.deepEqual(errors,[],`page exceptions ${theme} ${width}`);await page.close();
  }
  await browser.close();console.log(JSON.stringify({checks:outcomes.length,violations,outcomes},null,2));assert.equal(violations.length,0);

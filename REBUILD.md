@@ -22,3 +22,5 @@ and PostgreSQL storage. `npm run build:local` and `npm run start:local` run it.
 Stage 4 supplies [independent connected services](docs/CONNECTED_SERVICES.md);
 live provider acceptance is pending. Recovery, packaging and migration remain
 later stages; selecting storage never automatically migrates records.
+
+Stage 5 adds the [website landing/navigation and isolated sample flow](docs/STAGE_5_WEBSITE.md), including account-free samples in the independent runtime.

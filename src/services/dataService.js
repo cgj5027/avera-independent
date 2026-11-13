@@ -5,7 +5,7 @@
  */
 import { withGoalContributions } from '../../base44/shared/goalSavings';
 import { application } from '@/api/application';
-import { setModeOwner, getDataMode, getDemoWorkspace } from '@/lib/mode';
+import { setModeOwner, getDataMode, getDemoWorkspace, getModeSnapshot, getModeOwner } from '@/lib/mode';
 
 export const DATA_STAGE = 'live';
 
@@ -33,8 +33,10 @@ const ent = (key) => {
 };
 
 async function currentUser() {
+  const owner=getModeOwner(),before=getModeSnapshot();
   const user = await application.auth.currentUser();
   if (!user?.id) throw new Error('Sign in to access your financial records.');
+  if((owner&&user.id!==owner)||before!==getModeSnapshot())throw new Error('Your account or workspace changed. Please retry.');
   setModeOwner(user.id);
   return user;
 }
@@ -66,12 +68,13 @@ export async function listPage(key, query = {}, opts = {}) {
 }
 export async function listRecords(key, query = {}, { allDatasets = false } = {}) {
   const user = await currentUser();
-  const scoped=financialScope(user,key,query,allDatasets);
+  const scoped=financialScope(user,key,query,allDatasets),snapshot=getModeSnapshot();
   const items = [];
   const cursors = new Set();
   let cursor;
   do {
     const page = await ent(key).list(scoped, { limit: 100, ...(cursor ? { cursor } : {}) });
+    if(snapshot!==getModeSnapshot())throw new Error('Your workspace changed. Please retry.');
     items.push(...page.items);
     if (!page.has_more) return key === 'goal' ? withGoalContributions(items, await listRecords('goalContribution', {}, {allDatasets})) : items;
     if (!page.next_cursor || cursors.has(page.next_cursor)) throw new Error('Invalid pagination response');
@@ -88,7 +91,9 @@ function writable(data) {
 
 async function owned(key, id) {
   const user = await currentUser();
+  const snapshot=getModeSnapshot();
   const record = await ent(key).get(id);
+  if(snapshot!==getModeSnapshot())throw new Error('Your workspace changed. Please retry.');
   if (!record || record.created_by_id !== user.id) throw new Error('You cannot access this record.');
   if (key !== 'plaidItem') {
     const profile=getDataMode()==='demo'?getDemoWorkspace()?.profile:'';

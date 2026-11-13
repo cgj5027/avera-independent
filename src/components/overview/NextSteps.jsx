@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
 const STEPS = [
-  { label: 'Explore Demo Mode', path: '/welcome' },
+  { label: 'Try sample data', path: '/welcome?sample=1' },
   { label: 'Add your first bill', path: '/bills-budget' },
-  { label: 'Create a savings goal', path: '/bills-budget' },
+  { label: 'Create a savings goal', path: '/bills-budget?tab=goals' },
   { label: 'View bank connection status', path: '/settings' },
 ];
 
