@@ -28,7 +28,7 @@ Multi-device synchronization remains disabled in version 1.
 | Ask Avera | Question, bounded recent conversation turns and selected owned financial context; money calculations remain in code |
 | Category suggestions | Merchant descriptions and allowed category labels |
 | Bill suggestions | Local recurring-payment evidence first; optional AI classification uses merchant/category/cadence, without balances |
-| Job search | User-entered skills/profile and location to AI web search, optional OpenWeb Ninja LinkedIn and Photon geocoding |
+| Job search | User-entered skills/profile and location to AI web search, optional OpenWeb Ninja LinkedIn and Geocodio geocoding |
 | Resume assistance | Separately consented resume bytes/text, with extracted suggestions returned for review rather than auto-saved |
 | Account email | Recipient address and expiring verification/reset instructions |
 | Google sign-in | Standard OIDC authorization/token exchange; independent session created after identity validation |
@@ -100,11 +100,13 @@ Supply the retained provider credentials on the gateway server only:
 | --- | --- |
 | `OPENAI_API_KEY`, optional `OPENAI_MODEL` | AI, structured suggestions and web search; default model `gpt-4.1-mini` |
 | `PLAID_CLIENT_ID`, `PLAID_SECRET` | **Sandbox only**, preserving current application scope |
+| `GEOCODIO_API_KEY` | Required for distance-limited searches; set on gateway or direct server only |
 | `OPENWEBNINJA_API_KEY` | Optional LinkedIn source; AI web search remains the fallback |
 | `RESEND_API_KEY`, `AVERA_EMAIL_FROM` | Transactional verification/recovery email; verify the sender domain |
 | `AVERA_VAULT_KEY` | 32 random bytes encoded as base64; mandatory with configured PostgreSQL storage |
 
-Photon uses its fixed public endpoint. Confirm service terms, limits and sender/
+See [Geocodio setup and rollout](GEOCODIO_SETUP.md). Geocodio uses its fixed API
+v2.1 endpoint and a backend-only key. Confirm service terms, limits and sender/
 provider permissions separately. No custom browser-supplied provider URLs are
 accepted. Requests reject redirects, have time/response limits, and return
 sanitized errors. Persistent per-user minute/day limits fail closed if their

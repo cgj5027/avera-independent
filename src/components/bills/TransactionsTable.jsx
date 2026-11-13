@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Repeat, Check, Pencil, BellOff, Download, Sparkles, Plus, Columns3 } from 'lucide-react';
+import { Search, Pencil, Download, Sparkles, Plus, Columns3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { estimateBillCandidates, normalizeName } from '@/services/plaidEstimates';
 import ManualTransactionDialog from '@/components/bills/ManualTransactionDialog';
 import { formatCurrency } from '@/utils/format';
 import SourceChip from '@/components/states/SourceChip';
@@ -31,17 +30,17 @@ const csvCell = (value) => '"' + String(value ?? '').replace(/"/g, '""') + '"';
 /* User-selectable table columns; the choice persists between visits. */
 const COLUMN_DEFS = [
   { key: 'date', label: 'Date' },
-  { key: 'name', label: 'Name' },
+  { key: 'name', label: 'Description' },
   { key: 'account', label: 'Account' },
   { key: 'category', label: 'Category' },
   { key: 'source', label: 'Source' },
   { key: 'amount', label: 'Amount' },
-  { key: 'status', label: 'Status' },
 ];
-const DEFAULT_COLUMNS = ['date', 'name', 'category', 'source', 'amount', 'status'];
+const DEFAULT_COLUMNS = ['date', 'name', 'category', 'source', 'amount'];
 const COLUMNS_STORAGE_KEY = 'transactions-table-columns';
 const loadColumns = () => {
-  const saved = localStorage.getItem(COLUMNS_STORAGE_KEY);
+  let saved;
+  try { saved = localStorage.getItem(COLUMNS_STORAGE_KEY); } catch { return DEFAULT_COLUMNS; }
   const list = saved ? saved.split(',').filter((key) => COLUMN_DEFS.some((c) => c.key === key)) : [];
   return list.length > 0 ? list : DEFAULT_COLUMNS;
 };
@@ -54,15 +53,12 @@ const loadColumns = () => {
  */
 export default function TransactionsTable({
   transactions,
-  bills,
   accounts = [],
   categories = [],
   categoryRemaining = {},
   busy,
-  onAddBill,
   onSaveTransaction,
   onAddTransaction,
-  onMarkNotRecurring,
   onSuggestCategories,
 }) {
   const [search, setSearch] = useState('');
@@ -88,13 +84,6 @@ export default function TransactionsTable({
     return used.map((id) => ({ id, name: map.get(id) || 'Linked account' }));
   }, [accounts, rows]);
 
-  const recurringByName = useMemo(() => {
-    const candidates = estimateBillCandidates(rows);
-    return new Map(candidates.map((c) => [normalizeName(c.name), c]));
-  }, [rows]);
-
-  const savedNames = useMemo(() => new Set(bills.map((b) => normalizeName(b.name))), [bills]);
-
   /* Budget categories first (they count toward the Budget tab), then other categories used before. */
   const budgetNames = useMemo(() => new Set(categories.map((c) => c.name)), [categories]);
   const otherCategoryOptions = useMemo(
@@ -109,7 +98,8 @@ export default function TransactionsTable({
     setVisibleCols((cols) => {
       const next = cols.includes(key) ? cols.filter((c) => c !== key) : [...cols, key];
       const ordered = COLUMN_DEFS.filter((c) => next.includes(c.key)).map((c) => c.key);
-      localStorage.setItem(COLUMNS_STORAGE_KEY, ordered.join(','));
+      if (!ordered.length) return cols;
+      try { localStorage.setItem(COLUMNS_STORAGE_KEY, ordered.join(',')); } catch { /* Preferences are optional. */ }
       return ordered;
     });
 
@@ -126,10 +116,10 @@ export default function TransactionsTable({
       if (dateFrom && (t.date ?? '') < dateFrom) return false;
       if (dateTo && (t.date ?? '') > dateTo) return false;
       if (!q) return true;
-      const haystack = `${t.description ?? ''} ${t.category ?? ''}`.toLowerCase();
+      const haystack = `${t.description ?? ''} ${t.category ?? ''} ${t.source ?? ''} ${accountNames.find((a) => a.id === t.plaid_account_id)?.name ?? ''}`.toLowerCase();
       return haystack.includes(q);
     });
-  }, [rows, search, category, type, account, source, dateFrom, dateTo]);
+  }, [rows, search, category, type, account, source, dateFrom, dateTo, accountNames]);
 
   useEffect(() => {
     setPage(0);
@@ -162,12 +152,6 @@ export default function TransactionsTable({
     category: (t) => t.category ?? '',
     source: (t) => (isSynced(t) ? 'Synced' : 'Manual'),
     amount: (t) => String(t.amount ?? ''),
-    status: (t) => {
-      if (t.type === 'income') return '';
-      const candidate = recurringByName.get(normalizeName(t.description || t.category));
-      if (!candidate) return '';
-      return savedNames.has(normalizeName(t.description || t.category)) ? 'Tracked' : 'Recurring';
-    },
   };
 
   /* Exports exactly the columns currently shown. */
@@ -191,17 +175,17 @@ export default function TransactionsTable({
         <div>
           <h2 className="font-heading text-base font-semibold text-foreground">All transactions</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Linked-bank charges and manual entries combined. Highlighted charges look recurring — add them as tracked bills.
+            Review your linked-bank and manual transactions. Search, filter and edit budget categories.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => {
               setSaveError('');
               setAddOpen(true);
             }}
             disabled={busy}
-            className="min-h-11 rounded-xl"
+            className="min-h-11 w-full rounded-xl sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add transaction
@@ -210,7 +194,7 @@ export default function TransactionsTable({
             variant="secondary"
             onClick={onSuggestCategories}
             disabled={busy}
-            className="min-h-11 rounded-xl"
+            className="min-h-11 w-full rounded-xl sm:w-auto"
           >
             <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
             Suggest categories
@@ -246,6 +230,7 @@ export default function TransactionsTable({
                     <Checkbox
                       id={`col-${col.key}`}
                       checked={visibleCols.includes(col.key)}
+                      disabled={visibleCols.length === 1 && visibleCols.includes(col.key)}
                       onCheckedChange={() => toggleColumn(col.key)}
                     />
                     {col.label}
@@ -268,93 +253,116 @@ export default function TransactionsTable({
         />
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-2">
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          aria-label="From date"
-          className="w-full shrink-0 rounded-xl sm:w-40"
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          aria-label="To date"
-          className="w-full shrink-0 rounded-xl sm:w-40"
-        />
-        <Select value={account} onValueChange={setAccount}>
-          <SelectTrigger className="w-full shrink-0 sm:w-40" aria-label="Filter by account">
-            <SelectValue placeholder="All accounts" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All accounts</SelectItem>
-            {accountNames.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-full shrink-0 sm:w-48" aria-label="Filter by transaction category">
-            <SelectValue placeholder="All transaction categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All transaction categories</SelectItem>
-            <SelectItem value={UNCATEGORIZED}>Uncategorized</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="w-full shrink-0 sm:w-32" aria-label="Filter by type">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="expense">Expenses</SelectItem>
-            <SelectItem value="income">Income</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={source} onValueChange={setSource}>
-          <SelectTrigger className="w-full shrink-0 sm:w-44" aria-label="Filter by source">
-            <SelectValue placeholder="All sources" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All sources</SelectItem>
-            <SelectItem value="synced">Synced (linked bank)</SelectItem>
-            <SelectItem value="manual">Manual</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <details className="mt-3 rounded-xl border border-border p-3">
+        <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2">Filter transactions</summary>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>*]:!w-full">
+          <label className="space-y-1 text-sm text-muted-foreground">
+            <span>From date</span>
+            <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="From date"
+            className="w-full shrink-0 rounded-xl sm:w-40"
+            />
+          </label>
+          <label className="space-y-1 text-sm text-muted-foreground">
+            <span>To date</span>
+            <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            aria-label="To date"
+            className="w-full shrink-0 rounded-xl sm:w-40"
+            />
+          </label>
+          <Select value={account} onValueChange={setAccount}>
+            <SelectTrigger className="w-full shrink-0 sm:w-40" aria-label="Filter by account">
+              <SelectValue placeholder="All accounts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All accounts</SelectItem>
+              {accountNames.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-full shrink-0 sm:w-48" aria-label="Filter by transaction category">
+              <SelectValue placeholder="All transaction categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All transaction categories</SelectItem>
+              <SelectItem value={UNCATEGORIZED}>Uncategorized</SelectItem>
+              {[...new Set([...categories.map((c) => c.name), ...otherCategoryOptions])].filter(name => name !== 'Uncategorized').map((name) => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="w-full shrink-0 sm:w-32" aria-label="Filter by type">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="expense">Expenses</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger className="w-full shrink-0 sm:w-44" aria-label="Filter by source">
+              <SelectValue placeholder="All sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              <SelectItem value="synced">Synced (linked bank)</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          variant="ghost"
+          className="mt-3 min-h-11"
+          onClick={() => {
+            setSearch('');
+            setCategory('all');
+            setType('all');
+            setAccount('all');
+            setSource('all');
+            setDateFrom('');
+            setDateTo('');
+          }}
+        >
+          Clear filters
+        </Button>
+      </details>
+      <p role="status" className="mt-4 text-sm text-muted-foreground">{visible.length} {visible.length === 1 ? 'transaction' : 'transactions'} · Newest first</p>
 
       {pageRows.length === 0 ? (
         <p className="mt-4 text-base text-muted-foreground">
           {rows.length === 0 ? 'No transactions yet.' : 'No transactions match these filters.'}
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <Table>
-            <TableHeader>
+        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+          <Table aria-label="Transactions">
+            <caption className="sr-only">Transactions, newest first. Amounts show income with a plus sign and expenses with a minus sign.</caption>
+            <TableHeader className="bg-surface-subtle [&_th]:px-4">
               <TableRow>
                 {show.date && <TableHead>Date</TableHead>}
-                {show.name && <TableHead>Name</TableHead>}
+                {show.name && <TableHead>Description</TableHead>}
                 {show.account && <TableHead>Account</TableHead>}
                 {show.category && <TableHead>Category</TableHead>}
                 {show.source && <TableHead>Source</TableHead>}
                 {show.amount && <TableHead className="text-right">Amount</TableHead>}
-                {show.status && <TableHead className="text-right">Status</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageRows.map((t) => {
                 const isIncome = t.type === 'income';
-                const candidate = !isIncome ? recurringByName.get(normalizeName(t.description || t.category)) : null;
-                const isRecurring = Boolean(candidate) && !savedNames.has(normalizeName(t.description || t.category));
-                const isTracked = Boolean(candidate) && savedNames.has(normalizeName(t.description || t.category));
                 const synced = isSynced(t);
                 return (
-                  <TableRow key={t.id} className={isRecurring ? 'bg-warning-surface' : undefined}>
+                  <TableRow key={t.id} className="[&>td]:px-4 [&>td]:py-4">
                     {show.date && (
                       <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">{t.date}</TableCell>
                     )}
@@ -384,7 +392,7 @@ export default function TransactionsTable({
                           }}
                           disabled={busy}
                           aria-label={`Edit category for ${t.description || 'transaction'}`}
-                          className="h-7 w-7"
+                          className="min-h-11 min-w-11"
                         >
                           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                           </Button>
@@ -397,47 +405,9 @@ export default function TransactionsTable({
                       </TableCell>
                     )}
                     {show.amount && (
-                      <TableCell className="text-right tabular-nums text-foreground">
+                      <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums text-foreground">
                         {isIncome ? '+' : '-'}
                         {formatCurrency(t.amount)}
-                      </TableCell>
-                    )}
-                    {show.status && (
-                      <TableCell className="text-right">
-                        {isRecurring ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
-                            <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
-                            Recurring
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onAddBill(candidate)}
-                            disabled={busy}
-                            className="min-h-9 rounded-lg px-3"
-                          >
-                            Add as bill
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onMarkNotRecurring(t)}
-                            disabled={busy}
-                            className="min-h-9 rounded-lg px-3"
-                          >
-                            <BellOff className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                            Not recurring
-                          </Button>
-                        </span>
-                      ) : isTracked ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-success-text">
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                          Tracked
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                        )}
                       </TableCell>
                     )}
                   </TableRow>

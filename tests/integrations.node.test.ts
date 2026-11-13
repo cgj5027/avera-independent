@@ -9,10 +9,12 @@ import { startLocalServer } from '../server/http.ts';
 import { SecretBox,PrivateVault } from '../server/integrations/vault.ts';
 import { claimQuota } from '../server/integrations/quota.ts';
 import { directTransport } from '../server/integrations/providers.ts';
+import { createJobArea } from '../server/integrations/logic/jobDistance.js';
 import { fetchJson } from '../server/integrations/network.ts';
 import { PlaidFailure } from '../server/integrations/logic/plaid.js';
 import { collectChanges } from '../server/integrations/handlers/plaidSync.js';
 
+const geocodedFixture={location:{lat:42.36,lng:-71.06},accuracy:1,accuracy_type:'place',address_components:{city:'Boston'}};
 function fixture(){
   const calls:any[]=[],mails:any[]=[],state={failSync:false,revision:0,deleteFails:false,malformedAI:false,oauthClaims:{} as any};
   const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
@@ -43,7 +45,7 @@ function fixture(){
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(answer)}]}]});
     }
     if(url.hostname==='api.openwebninja.com')return Response.json({status:'OK',data:[]});
-    if(url.hostname==='photon.komoot.io')return Response.json({features:[]});
+    if(url.hostname==='api.geocod.io')return Response.json({results:[{...geocodedFixture,api_key:'must-not-escape'}],input:{api_key:'must-not-escape'}});
     if(url.hostname==='oauth2.googleapis.com'){
       const header=Buffer.from(JSON.stringify({alg:'RS256',kid:'fixture-key'})).toString('base64url');
       const payload=Buffer.from(JSON.stringify(state.oauthClaims)).toString('base64url');
@@ -59,7 +61,7 @@ for(const dialect of ['sqlite','postgres'] as const){
   test(`${dialect}: independent direct providers and authentication`,{skip:dialect==='postgres'&&!process.env.AVERA_TEST_POSTGRES_URL},async t=>{
     const dir=await mkdtemp(join(tmpdir(),'avera-stage4-')),f=fixture();
     const db=dialect==='sqlite'?sqliteDatabase(join(dir,'records.sqlite')):postgresDatabase(process.env.AVERA_TEST_POSTGRES_URL!);
-    const env={AVERA_INTEGRATION_MODE:'direct',AVERA_VAULT_KEY:randomBytes(32).toString('base64'),OPENAI_API_KEY:'fixture-key',PLAID_CLIENT_ID:'fixture-id',PLAID_SECRET:'fixture-only',RESEND_API_KEY:'fixture-key',AVERA_EMAIL_FROM:'Avera <noreply@example.test>',GOOGLE_CLIENT_ID:'fixture-google',GOOGLE_CLIENT_SECRET:'fixture-only',OPENWEBNINJA_API_KEY:'fixture-key'};
+    const env={AVERA_INTEGRATION_MODE:'direct',AVERA_VAULT_KEY:randomBytes(32).toString('base64'),OPENAI_API_KEY:'fixture-key',PLAID_CLIENT_ID:'fixture-id',PLAID_SECRET:'fixture-only',RESEND_API_KEY:'fixture-key',AVERA_EMAIL_FROM:'Avera <noreply@example.test>',GOOGLE_CLIENT_ID:'fixture-google',GOOGLE_CLIENT_SECRET:'fixture-only',OPENWEBNINJA_API_KEY:'fixture-key',GEOCODIO_API_KEY:'fixture-geocoder-key'};
     let runtime=await startLocalServer({db,port:0,env,fetcher:f.fetcher});
     t.after(async()=>{await runtime.close();await rm(dir,{recursive:true,force:true});});
     async function request(path:string,data?:any,cookie='',method=data===undefined?'GET':'POST'){
@@ -142,7 +144,13 @@ for(const dialect of ['sqlite','postgres'] as const){
       const direct=directTransport(env,new PrivateVault(db,new SecretBox(Buffer.alloc(32))),f.fetcher);
       await assert.rejects(direct.invoke(owner,'jobs.fetch',{url:'http://127.0.0.1/private'}));
       await direct.invoke(owner,'jobs.fetch',{url:'https://api.openwebninja.com/realtime-linkedin-data/search?query=cook'});
-      await direct.invoke(owner,'jobs.fetch',{url:'https://photon.komoot.io/api/?q=Boston'});
+      const locationUrl='https://api.geocod.io/v2.1/geocode?q=Boston%2C%20MA';
+      const geo=await direct.invoke(owner,'jobs.fetch',{url:locationUrl});
+      assert.deepEqual(geo,{results:[geocodedFixture]});
+      assert.equal(new URL(f.calls.at(-1).url).searchParams.get('api_key'),'fixture-geocoder-key');
+      assert.equal(f.calls.at(-1).init.redirect,'error');
+      for(const url of ['https://photon.komoot.io/api/?q=Boston',locationUrl+'&api_key=override','https://user:pass@api.geocod.io/v2.1/geocode?q=Boston'])await assert.rejects(direct.invoke(owner,'jobs.fetch',{url}));
+      await assert.rejects(directTransport({...env,GEOCODIO_API_KEY:''},new PrivateVault(db,new SecretBox(Buffer.alloc(32))),f.fetcher).invoke(owner,'jobs.fetch',{url:locationUrl}),/not configured/);
       await claimQuota(db,owner,'fixture-quota',1);await assert.rejects(claimQuota(db,owner,'fixture-quota',1),/limit reached/);
       await assert.rejects(fetchJson(async()=>new Response('x'.repeat(100)), 'https://fixture.test',{},20));
       await assert.rejects(fetchJson(async()=>{throw new Error('private-provider-detail');},'https://fixture.test'),error=>!String(error).includes('private-provider-detail'));
@@ -210,12 +218,14 @@ test('Plaid mutation during pagination restarts from original cursor',async()=>{
 test('gateway grants isolate local accounts and replace bank secrets with owner-bound handles',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'avera-gateway-'));const f=fixture(),token=randomBytes(32).toString('base64url');
  const tokenB=randomBytes(32).toString('base64url');const grants=join(dir,'grants.json');await writeFile(grants,JSON.stringify([{id:'fixture-installation',token},{id:'fixture-installation-two',token:tokenB}]));
- const gateway=await startLocalServer({db:sqliteDatabase(join(dir,'gateway.sqlite')),port:0,gatewayOnly:true,env:{AVERA_GATEWAY_GRANTS_FILE:grants,AVERA_VAULT_KEY:randomBytes(32).toString('base64'),PLAID_CLIENT_ID:'fixture',PLAID_SECRET:'fixture',OPENAI_API_KEY:'fixture'},fetcher:f.fetcher});
+ const gateway=await startLocalServer({db:sqliteDatabase(join(dir,'gateway.sqlite')),port:0,gatewayOnly:true,env:{AVERA_GATEWAY_GRANTS_FILE:grants,AVERA_VAULT_KEY:randomBytes(32).toString('base64'),PLAID_CLIENT_ID:'fixture',PLAID_SECRET:'fixture',OPENAI_API_KEY:'fixture',GEOCODIO_API_KEY:'fixture-geocoder-key'},fetcher:f.fetcher});
  t.after(async()=>{await gateway.close();await rm(dir,{recursive:true,force:true});});
  const call=async(actor:string,operation:string,input:any,bearer=token)=>{const res=await fetch(gateway.url+'/gateway/v1/invoke',{method:'POST',headers:{Authorization:'Bearer '+bearer,'Content-Type':'application/json'},body:JSON.stringify({actor,operation,input})});return {status:res.status,data:await res.json()};};
  assert.equal((await fetch(gateway.url+'/api/v1/auth/me')).status,404);
  assert.equal((await call('one','capabilities',{},'bad')).status,401);
+ const geocoded=await call('one','jobs.fetch',{url:'https://api.geocod.io/v2.1/geocode?q=Boston%2C%20MA'});assert.equal(geocoded.status,200);assert.deepEqual(geocoded.data.result,{results:[geocodedFixture]});assert.doesNotMatch(JSON.stringify(geocoded),/fixture-geocoder-key|must-not-escape/);
  const verification=await call('one','jobs.verify',{candidates:[{url:'https://127.0.0.1/private',title:'Fixture role',company:'Fixture employer'}]});assert.equal(verification.status,200);assert.equal(verification.data.result[0].status,'unverified');
+ const area=createJobArea({location:'Boston, MA'},async(url:string)=>{const response=await call('one','jobs.fetch',{url});return Response.json(response.data.result,{status:response.status});});assert.equal((await area.filter([{location:'Boston, MA'}]))[0].distance_miles,0);
  const exchanged=await call('one','plaid',{path:'/item/public_token/exchange',body:{public_token:'public-sandbox-fixture'}});assert.equal(exchanged.status,200);const handle=exchanged.data.result.access_token;assert.match(handle,/^access-sandbox-gateway-/);assert.doesNotMatch(JSON.stringify(exchanged),/fixture-private/);
  assert.equal((await call('one','plaid',{path:'/accounts/get',body:{access_token:handle}},tokenB)).status,404);
  assert.equal((await call('two','plaid',{path:'/accounts/get',body:{access_token:handle}})).status,404);

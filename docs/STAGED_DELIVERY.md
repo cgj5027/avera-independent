@@ -212,5 +212,40 @@ source-check timestamps/exclusion counts in the UI. OpenAI web search is require
 for discovery; optional LinkedIn results use the same availability gate.
 See JOB_AVAILABILITY.md for the algorithm, limitations and coordinated gateway /
 local-update steps. Live posting freshness must still be accepted after rollout.
-The stopped location-change proposal was not implemented; Photon reachability
-and distance-limited search remain a separate unresolved acceptance item.
+The initial location proposal was stopped. The subsequent authorized Geocodio
+replacement is described below; live location acceptance remains pending.
+
+### Geocodio and transaction table follow-up
+
+Independent distance filtering now uses Geocodio API v2.1 instead of Photon.
+The gateway/direct server injects GEOCODIO_API_KEY into a freshly constructed fixed
+HTTPS request, rejects caller credentials/extra parameters, and returns only the
+location/match fields. Keys never go to browser/downloads. Request-scoped caching
+and thirteen-lookups-per-search budget remain; persistent caching is deferred.
+Matches require local city information, finite coordinates and accuracy >=0.8;
+similarly scored distant matches need a more specific origin. Country/state-only,
+unknown, quota failures and timeouts never silently broaden the selected radius.
+Distances remain approximate straight-line distances. Legacy Base44 compatibility
+logic is unchanged; the independent build uses Geocodio exclusively.
+
+The transaction table removes recurring status, recurring controls and warning
+highlights; recurring bill estimation remains in its separate review workflow.
+It adds a collapsible filter panel, clear-filters action, result count, cleaner
+spacing/headers, signed amounts and larger category-edit targets. Old column
+preferences discard removed status; at least one column stays visible. CSV uses
+visible columns and excludes the removed status. Financial calculations, stored
+transactions, category assignment and source labels are preserved.
+
+Rollout: configure a capped Geocodio account, add GEOCODIO_API_KEY on Render,
+deploy the updated gateway, then update/rebuild/restart the desktop installation.
+Test a specific city/state or postal code plus nearby/out-of-radius locations.
+Live Geocodio connectivity and quota settings require operator acceptance; fixture
+results do not certify them. No new database migration is required.
+
+Local checkpoint for this follow-up (Linux/Node 24): 25 regression files / 442
+tests passed; 57 native checks passed across SQLite and PostgreSQL 16, no skips;
+41 independent-runtime browser cases and 208 responsive compatibility fixture
+checks passed, with no reported axe violations. Lint, all three type checks and
+both production builds passed. Existing large-bundle and compatibility-only
+Base44 configuration warnings remain. Manual assistive-technology validation,
+cross-OS packaging and live Geocodio acceptance are separate gates.

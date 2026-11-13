@@ -52,10 +52,21 @@ export function directTransport(env:Env,vault:PrivateVault,fetcher:typeof fetch=
     if(operation==='jobs.fetch'){
       let url:URL;try{url=new URL(input.url);}catch{invalid('Invalid job provider request.');}
       const linked=url!.origin==='https://api.openwebninja.com'&&['/realtime-linkedin-data/search','/realtime-linkedin-data/job-details'].includes(url!.pathname);
-      const photon=url!.origin==='https://photon.komoot.io'&&url!.pathname==='/api/';
-      if(!linked&&!photon)invalid('Unsupported job provider.');
-      if(linked&&!env.OPENWEBNINJA_API_KEY)unavailable();
-      return fetchJson(fetcher,url!.href,{headers:linked?{'x-api-key':env.OPENWEBNINJA_API_KEY!}:{}});
+      const geocodio=url!.origin==='https://api.geocod.io'&&url!.pathname==='/v2.1/geocode';
+      if(url!.username||url!.password||(!linked&&!geocodio))invalid('Unsupported job provider.');
+      if(geocodio){
+        const query=url!.searchParams.get('q')?.trim();
+        if(!query||query.length>400||url!.searchParams.getAll('q').length!==1||[...url!.searchParams.keys()].some(key=>key!=='q'))invalid('Invalid location request.');
+        if(!env.GEOCODIO_API_KEY)unavailable();
+        // Build a fresh, fixed destination. Only the server supplies the credential.
+        const target=new URL('https://api.geocod.io/v2.1/geocode');
+        target.searchParams.set('q',query);target.searchParams.set('api_key',env.GEOCODIO_API_KEY!);
+        const result=await fetchJson(fetcher,target.href,{},512*1024,5000);
+        // Do not relay provider request metadata or credentials back to installations.
+        return {results:Array.isArray(result.results)?result.results.map((row:any)=>({location:row.location,accuracy:row.accuracy,accuracy_type:row.accuracy_type,address_components:{city:row.address_components?.city}})):undefined};
+      }
+      if(!env.OPENWEBNINJA_API_KEY)unavailable();
+      return fetchJson(fetcher,url!.href,{headers:{'x-api-key':env.OPENWEBNINJA_API_KEY!}});
     }
     if(operation==='mail'){
       if(!env.RESEND_API_KEY||!env.AVERA_EMAIL_FROM)unavailable();

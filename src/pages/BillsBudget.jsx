@@ -172,12 +172,6 @@ export default function BillsBudget() {
   const applyContribution = (goalId, amount, requestId) =>
     run(() => logGoalContribution(goalId, amount, requestId), 'Contribution logged');
 
-  const markNotRecurring = (transaction) =>
-    run(
-      () => updateRecord('transaction', transaction.id, { not_recurring: true }),
-      'Marked as not recurring — future charges with this name stay unflagged'
-    );
-
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const { kind, record } = deleteTarget;
@@ -362,15 +356,12 @@ export default function BillsBudget() {
           <TabsContent value="transactions" className="mt-0">
             <TransactionsTable
               transactions={transactions}
-              bills={bills}
               accounts={accounts.filter((a) => a.plaid_item_id)}
               categories={categories}
               categoryRemaining={remainingByCategory}
               busy={busy}
-              onAddBill={addBillFromCandidate}
               onSaveTransaction={saveTransactionRow}
               onAddTransaction={() => setAddTxnOpen(true)}
-              onMarkNotRecurring={markNotRecurring}
               onSuggestCategories={suggestCategories}
             />
           </TabsContent>
