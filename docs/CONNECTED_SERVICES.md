@@ -72,7 +72,9 @@ include it in a public/downloadable distribution or ordinary export.
 ## Gateway operator setup
 
 Use a separate installation/database and a controlled TLS reverse proxy. The Node
-server binds loopback. Set `AVERA_PUBLIC_ORIGIN` to the exact public HTTPS origin;
+server binds loopback by default. For managed Render hosting, use the
+[Render setup](RENDER_SETUP.md), which explicitly enables container networking.
+Set `AVERA_PUBLIC_ORIGIN` to the exact public HTTPS origin;
 the reverse proxy must forward the correct Host, enforce TLS and body/time limits,
 and avoid logging credentials, request bodies, reset links or callback queries.
 For a headless gateway, run `server/gateway.ts` with `npm run start:gateway`.

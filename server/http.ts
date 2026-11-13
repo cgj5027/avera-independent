@@ -28,9 +28,10 @@ function send(res: ServerResponse, status: number, value: unknown) {
 function cookie(req: IncomingMessage) {
   return req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('avera_session='))?.slice('avera_session='.length);
 }
-export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false }: {
-  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;
+export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false,host="127.0.0.1",healthHost }: {
+  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;host?:'127.0.0.1'|'0.0.0.0';healthHost?:string;
 }) {
+  if(host!=='127.0.0.1'&&(!gatewayOnly||host!=='0.0.0.0'||!publicOrigin))throw new Error('Public binding requires an HTTPS gateway configuration.');
   await migrate(db);
   const store=new RecordStore(db);
   const integrations=env?integrationRuntime(db,store,env,fetcher):undefined;
@@ -42,7 +43,8 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
     try {
       const expected=new URL(publicOrigin ?? origin);
       const allowed=publicOrigin ? [expected.host] : [expected.host,`localhost:${expected.port}`];
-      if (!req.headers.host || !allowed.includes(req.headers.host)) throw new ApiError(421,'INVALID_HOST','Invalid host.');
+      const healthProbe=gatewayOnly&&req.method==='GET'&&req.url==='/api/v1/health'&&healthHost&&req.headers.host===healthHost;
+      if (!healthProbe&&(!req.headers.host || !allowed.includes(req.headers.host))) throw new ApiError(421,'INVALID_HOST','Invalid host.');
       const requestOrigin=publicOrigin ?? `http://${req.headers.host}`;
       const url=new URL(req.url ?? '/',requestOrigin), method=req.method ?? 'GET';
       res.setHeader('X-Content-Type-Options','nosniff');
@@ -143,7 +145,7 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
     }
   }
   server.requestTimeout=120000;server.headersTimeout=15000;
-  await new Promise<void>((resolve,reject)=>{ server.once('error',reject); server.listen(port,'127.0.0.1',()=>resolve()); });
+  await new Promise<void>((resolve,reject)=>{ server.once('error',reject); server.listen(port,host,()=>resolve()); });
   const address=server.address();
   if (!address || typeof address==='string') throw new Error('Server did not bind.');
   origin=`http://127.0.0.1:${address.port}`;

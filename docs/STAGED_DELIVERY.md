@@ -190,3 +190,13 @@ an explicit Stage 7 exit gate. Backups/restore/migration, account-free sample mo
 website navigation and manual accessibility/desktop packaging remain in their
 scheduled stages. No Base44 cancellation or production cutover is authorized by
 this checkpoint.
+
+### Render deployment preparation
+
+The headless gateway now supports an explicit `AVERA_LISTEN_HOST=0.0.0.0`,
+Render's `PORT` and HTTPS external URL, while desktop startup keeps its existing
+loopback-only listener. A configured Render hostname is accepted only for GET
+health probes, so custom-domain deployments do not broaden gateway authorization.
+Invalid ports/origins and unsupported public binding are rejected. Manual service,
+PostgreSQL and secret settings are documented in RENDER_SETUP.md. No Render
+resources or deployments are created by this change; live acceptance remains open.
