@@ -28,9 +28,8 @@ export function createJobArea(profile, fetcher = fetch) {
             return Promise.resolve(null);
         if (!cache.has(key))
             cache.set(key, (async () => {
-                const url = new URL('https://photon.komoot.io/api/');
+                const url = new URL('https://api.geocod.io/v2.1/geocode');
                 url.searchParams.set('q', query);
-                url.searchParams.set('limit', '2');
                 let response;
                 try {
                     response = await fetcher(url.toString(), { redirect: 'manual', signal: AbortSignal.timeout(5000) });
@@ -47,20 +46,20 @@ export function createJobArea(profile, fetcher = fetch) {
                 catch {
                     throw new RequestFailure(503, 'Location lookup is unavailable. Please retry.', 'LOCATION_UNAVAILABLE');
                 }
-                if (!Array.isArray(body?.features))
+                if (!Array.isArray(body?.results))
                     throw new RequestFailure(503, 'Location lookup is unavailable. Please retry.', 'LOCATION_UNAVAILABLE');
-                const places = body.features.filter(feature => {
-                    const point = feature?.geometry?.coordinates;
-                    const kind = feature?.properties?.type;
-                    return Array.isArray(point) && coords(point[0], point[1]) &&
-                        !['country', 'state', 'county'].includes(kind) && (feature.properties.city || ['city', 'town', 'village', 'locality', 'postcode', 'district'].includes(kind));
-                });
+                const places = body.results.filter(place => {
+                    const point = place?.location;
+                    return coords(point?.lng, point?.lat) && typeof place.accuracy === 'number' &&
+                        place.accuracy >= 0.8 && !!place.address_components?.city &&
+                        ['rooftop', 'point', 'range_interpolation', 'street_center', 'place'].includes(place.accuracy_type);
+                }).sort((a, b) => b.accuracy - a.accuracy);
                 if (!places.length)
                     return null;
-                const point = places[0].geometry.coordinates;
-                const result = { lon: point[0], lat: point[1] };
-                // Reject ambiguous cities rather than picking a distant city with the same name.
-                if (places[1] && milesBetween(result, { lon: places[1].geometry.coordinates[0], lat: places[1].geometry.coordinates[1] }) > 25)
+                const result = { lon: places[0].location.lng, lat: places[0].location.lat };
+                // Equally plausible distant matches need a more specific city/state or postal code.
+                if (places.slice(1).some(place => places[0].accuracy - place.accuracy < 0.1 &&
+                    milesBetween(result, { lon: place.location.lng, lat: place.location.lat }) > 25))
                     return null;
                 return result;
             })());

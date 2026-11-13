@@ -1,3 +1,4 @@
+import { createPostingVerifier } from './job-availability.ts';
 import { randomUUID } from 'node:crypto';
 import { dirname,join } from 'node:path';
 import { validateResume } from './logic/resumeValidation.js';
@@ -62,11 +63,12 @@ export function integrationRuntime(db:Database,store:RecordStore,env:Record<stri
       if(name==='parseResume')return transport.invoke(user.id,'resume',data);
       const status=name==='searchJobOpportunities'?await this.status(user.id):null;
       const deadline=Date.now()+90000;
+      const verifier=createPostingVerifier(candidates=>transport.invoke(user.id,'jobs.verify',{candidates}));
       const context={auth:{me:async()=>user},records:recordsFor(store,user.id),privateRecords:privateRecordsFor(vault,user.id),
         quota:{claim:async()=>{}},
         ai:{generate:(input:any)=>{if(!aiAllowed)throw new ApiError(403,'AI_CONSENT_REQUIRED','Enable online AI processing in Settings.');return transport.invoke(user.id,'ai',input);}},
         plaid:{request:(path:string,body:any)=>{if(Date.now()>deadline)throw new ApiError(503,'SERVICE_TIMEOUT','Bank refresh timed out. Retry to continue.');return transport.invoke(user.id,'plaid',{path,body});}},
-        jobs:{linkedInConfigured:status?.linkedIn??false,linkedInKey:'server-managed',fetcher:async(url:string)=>Response.json(await transport.invoke(user.id,'jobs.fetch',{url}))},
+        jobs:{check:verifier.check,summary:verifier.summary,linkedInConfigured:status?.linkedIn??false,linkedInKey:'server-managed',fetcher:async(url:string)=>Response.json(await transport.invoke(user.id,'jobs.fetch',{url}))},
       };
       const request=bindContext(new Request('http://avera.local/services/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),context);
       const bank=['plaidCreateLinkToken','plaidExchangeToken','plaidSync','plaidDisconnect','demoSandboxConnect'].includes(name),lease=randomUUID(),key='bank:'+user.id;

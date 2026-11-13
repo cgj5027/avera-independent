@@ -26,7 +26,7 @@ export function gatewayHandler(db:Database,transport:Transport,vault:PrivateVaul
     const grant=grants.find(row=>timingSafeEqual(supplied,createHash('sha256').update('Bearer '+row.token).digest()));
     if(!grant)throw new ApiError(401,'AUTH_REQUIRED','Invalid installation grant.');
     if(typeof body.actor!=='string'||!/^[a-zA-Z0-9-]{1,100}$/.test(body.actor))invalid('Invalid local account.');
-    if(!['capabilities','ai','resume','plaid','jobs.fetch','mail'].includes(body.operation))invalid('Unknown gateway operation.');
+    if(!['capabilities','ai','resume','plaid','jobs.fetch','jobs.verify','mail'].includes(body.operation))invalid('Unknown gateway operation.');
     const actor=createHash('sha256').update(grant.id+'\0'+body.actor).digest('hex');
     await claimQuota(db,grant.id,'gateway',100,60000);await claimQuota(db,grant.id,'gateway',2000,86400000);
     let input=structuredClone(body.input??{});

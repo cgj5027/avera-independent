@@ -17,7 +17,7 @@
     "typecheck:platform": "tsc -p tsconfig.platform.json",
     "build:local": "node scripts/build-local.mjs",
     "start:local": "node --env-file-if-exists=.env.local --experimental-strip-types server/index.ts",
-    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts tests/integrations.node.test.ts tests/gateway-hosting.node.test.ts",
+    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts tests/integrations.node.test.ts tests/gateway-hosting.node.test.ts tests/job-availability.node.test.ts",
     "test:local:browser": "node tests/local-runtime-browser.cjs",
     "start:gateway": "node --env-file-if-exists=.env.local --experimental-strip-types server/gateway.ts"
   },
@@ -71,6 +71,7 @@
     "lucide-react": "^0.475.0",
     "moment": "^2.30.1",
     "next-themes": "^0.4.4",
+    "parse5": "8.0.1",
     "pg": "^8.23.1",
     "react": "^18.2.0",
     "react-day-picker": "^8.10.1",

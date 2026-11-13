@@ -7,7 +7,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
   async function request(path: string, method='GET', input?: unknown) {
     let response: Response;
     try { response=await fetcher('/api/v1'+path,{
-      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(path.startsWith('/services/')?120000:20000),
+      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(path==='/services/searchJobOpportunities'?180000:path.startsWith('/services/')?120000:20000),
       headers:{'Content-Type':'application/json'},...(input===undefined ? {} : {body:JSON.stringify(input)}),
     }); } catch { throw Object.assign(new Error('Local service is unavailable.'),{status:0,code:'SERVICE_UNAVAILABLE'}); }
     let data: Fields;

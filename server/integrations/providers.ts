@@ -1,3 +1,4 @@
+import { checkPostings } from './job-availability.ts';
 import { ApiError,invalid } from '../errors.ts';
 import { fetchJson,strictSchema,validateStructured } from './network.ts';
 import { PlaidFailure } from './logic/plaid.js';
@@ -19,7 +20,7 @@ export function directTransport(env:Env,vault:PrivateVault,fetcher:typeof fetch=
       model:env.OPENAI_MODEL??'gpt-4.1-mini',store:false,max_output_tokens:6000,
       input:[{role:'user',content:[{type:'input_text',text:input.prompt},...(file?[{type:'input_file',file_id:file.id}]:[])]}],
       text:{format:{type:'json_schema',name:'avera_response',strict:true,schema}},
-      ...(input.add_context_from_internet?{tools:[{type:'web_search_preview'}]}:{}),
+      ...(input.add_context_from_internet?{tools:[{type:'web_search_preview'}],tool_choice:'required'}:{}),
     });
     const output=(data.output??[]).flatMap((row:any)=>row.content??[]).filter((row:any)=>row.type==='output_text').map((row:any)=>row.text).join('');
     let result;try{result=JSON.parse(output);}catch{throw new ApiError(502,'INVALID_PROVIDER_RESPONSE','The AI provider returned an invalid response.');}
@@ -44,13 +45,28 @@ export function directTransport(env:Env,vault:PrivateVault,fetcher:typeof fetch=
       const allowed=['ITEM_LOGIN_REQUIRED','INVALID_ACCESS_TOKEN','ITEM_NOT_FOUND','PRODUCT_NOT_READY','TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION'];
       try{return await fetchJson(fetcher,'https://sandbox.plaid.com'+input.path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,client_id:env.PLAID_CLIENT_ID,secret:env.PLAID_SECRET})},2*1024*1024,20000,value=>new PlaidFailure(allowed.includes(value.error_code)?value.error_code:'PLAID_UNAVAILABLE'));}catch(error){if(error instanceof PlaidFailure)throw error;throw new PlaidFailure();}
     }
+    if(operation==='jobs.verify'){
+      if(!Array.isArray(input?.candidates)||input.candidates.length>24)invalid('Invalid posting batch.');
+      return checkPostings(input.candidates);
+    }
     if(operation==='jobs.fetch'){
       let url:URL;try{url=new URL(input.url);}catch{invalid('Invalid job provider request.');}
       const linked=url!.origin==='https://api.openwebninja.com'&&['/realtime-linkedin-data/search','/realtime-linkedin-data/job-details'].includes(url!.pathname);
-      const photon=url!.origin==='https://photon.komoot.io'&&url!.pathname==='/api/';
-      if(!linked&&!photon)invalid('Unsupported job provider.');
-      if(linked&&!env.OPENWEBNINJA_API_KEY)unavailable();
-      return fetchJson(fetcher,url!.href,{headers:linked?{'x-api-key':env.OPENWEBNINJA_API_KEY!}:{}});
+      const geocodio=url!.origin==='https://api.geocod.io'&&url!.pathname==='/v2.1/geocode';
+      if(url!.username||url!.password||(!linked&&!geocodio))invalid('Unsupported job provider.');
+      if(geocodio){
+        const query=url!.searchParams.get('q')?.trim();
+        if(!query||query.length>400||url!.searchParams.getAll('q').length!==1||[...url!.searchParams.keys()].some(key=>key!=='q'))invalid('Invalid location request.');
+        if(!env.GEOCODIO_API_KEY)unavailable();
+        // Build a fresh, fixed destination. Only the server supplies the credential.
+        const target=new URL('https://api.geocod.io/v2.1/geocode');
+        target.searchParams.set('q',query);target.searchParams.set('api_key',env.GEOCODIO_API_KEY!);
+        const result=await fetchJson(fetcher,target.href,{},512*1024,5000);
+        // Do not relay provider request metadata or credentials back to installations.
+        return {results:Array.isArray(result.results)?result.results.map((row:any)=>({location:row.location,accuracy:row.accuracy,accuracy_type:row.accuracy_type,address_components:{city:row.address_components?.city}})):undefined};
+      }
+      if(!env.OPENWEBNINJA_API_KEY)unavailable();
+      return fetchJson(fetcher,url!.href,{headers:{'x-api-key':env.OPENWEBNINJA_API_KEY!}});
     }
     if(operation==='mail'){
       if(!env.RESEND_API_KEY||!env.AVERA_EMAIL_FROM)unavailable();

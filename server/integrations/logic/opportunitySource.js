@@ -173,6 +173,7 @@ async function searchViaWebSearch(context, profile, relatedRoles = false) {
         add_context_from_internet: true,
         prompt: [
             'Search the web for current, real job and gig listings that match this candidate profile.',
+            `Today is ${new Date().toISOString().slice(0,10)}. Prefer recently posted openings on employer or applicant-tracking-system pages. Open each source and check that applications are still accepted. Exclude closed, filled, expired or removed postings and deadlines that have passed; search snippets alone are insufficient.`,
             '',
             'PROFILE:',
             `Skills: ${profile.skills}`,
@@ -240,7 +241,7 @@ const PROVIDERS = {
     web_search: searchViaWebSearch,
     linkedin: (context, profile) => jobSource.searchLinkedIn(profile, context),
 };
-export function rankListings(rawList, profile, primaryProvider = null) {
+export function rankListings(rawList, profile, primaryProvider = null, maximum = MAX_LISTINGS) {
     const level = EXPERIENCE_LEVELS.includes(profile.experience_level) ? profile.experience_level : 'entry_level';
     const jobType = JOB_TYPES.includes(profile.job_type) ? profile.job_type : 'any';
     const normalize = rawList => {
@@ -272,7 +273,7 @@ export function rankListings(rawList, profile, primaryProvider = null) {
             seenUrls.add(identity);
             return true;
         })
-            .slice(0, MAX_LISTINGS);
+            .slice(0, maximum);
     };
     return normalize(rawList);
 }
@@ -289,17 +290,21 @@ export async function searchListings(context, profile, providerId = 'web_search'
         throw new Error('Unknown opportunity source.');
     const level = EXPERIENCE_LEVELS.includes(profile.experience_level) ? profile.experience_level : 'entry_level';
     const jobType = JOB_TYPES.includes(profile.job_type) ? profile.job_type : 'any';
-    const normalize = rawList => rankListings(rawList, profile);
+    const normalize = async rawList => {
+        const ranked=rankListings(rawList,profile,null,24);
+        const checks=await context.jobs.check(ranked.map(({url,title,company})=>({url,title,company})));
+        return ranked.flatMap((item,index)=>checks[index]?.status==='active'?[{...item,availability_status:'checked',availability_checked_at:checks[index].checked_at,availability_basis:checks[index].reason}]:[]).slice(0,MAX_LISTINGS);
+    };
     const query = { ...profile, experience_level: level, job_type: jobType };
     let candidates = (await provider(context, query)).map(item => ({ ...item, source_provider: providerId }));
-    let opportunities = normalize(await area.filter(candidates));
+    let opportunities = await normalize(await area.filter(candidates));
     let partial_results = false;
     let related_roles_searched = false;
     if (providerId === 'web_search' && opportunities.length < MAX_LISTINGS) {
         related_roles_searched = true;
         try {
             candidates = [...candidates, ...(await provider(context, query, true)).map(item => ({ ...item, source_provider: providerId }))];
-            opportunities = normalize(await area.filter(candidates));
+            opportunities = await normalize(await area.filter(candidates));
         }
         catch (error) {
             if (!opportunities.length)
@@ -307,7 +312,7 @@ export async function searchListings(context, profile, providerId = 'web_search'
             partial_results = true;
         }
     }
-    return { source_provider: providerId, experience_level: level, job_type: jobType, related_roles_searched, partial_results: partial_results || Boolean(area.partial), opportunities };
+    return { availability:context.jobs.summary(),source_provider: providerId, experience_level: level, job_type: jobType, related_roles_searched, partial_results: partial_results || Boolean(area.partial), opportunities };
 }
 /** LinkedIn is primary. Web search fills remaining slots or handles source failures. */
 async function searchCombined(context, profile) {
@@ -327,7 +332,11 @@ async function searchCombined(context, profile) {
             const result = await searchListings(context, profile, provider, area);
             succeeded = true;
             sources.push({ provider, status: 'searched' });
-            opportunities = rankListings([...opportunities, ...result.opportunities], profile, 'linkedin');
+            const verified=[...opportunities,...result.opportunities];
+            opportunities = rankListings(verified, profile, 'linkedin').map(item=>{
+                const evidence=verified.find(row=>row.url===item.url);
+                return {...item,availability_status:evidence.availability_status,availability_checked_at:evidence.availability_checked_at,availability_basis:evidence.availability_basis};
+            });
             related_roles_searched ||= result.related_roles_searched;
             partial_results ||= result.partial_results;
         }
@@ -344,7 +353,7 @@ async function searchCombined(context, profile) {
         throw new RequestFailure(502, 'Job sources unavailable', 'JOB_SOURCES_UNAVAILABLE');
     }
     return {
-        source_provider: 'combined', primary_provider: providers[0], sources,
+        availability:context.jobs.summary(),source_provider: 'combined', primary_provider: providers[0], sources,
         opportunities, related_roles_searched, partial_results,
     };
 }

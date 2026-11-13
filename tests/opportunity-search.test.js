@@ -77,12 +77,13 @@ describe('actual web-search adapter/handler with provider fixtures, not live pos
   it('sanitizes provider exceptions instead of returning private messages',async()=>{
     llm.mockRejectedValue(new Error('fixture sensitive upstream detail'));const response=await search(request(profile));expect(response.status).toBe(502);expect(await response.text()).not.toContain('sensitive');
   });
-  it('allows job search to finish beyond the shorter assistant timeout',async()=>{
+  it('allows discovery and availability checks to finish beyond one minute',async()=>{
     vi.useFakeTimers();try {
-      sdk.functions.invoke.mockImplementation(()=>new Promise(resolve=>setTimeout(()=>resolve({data:{opportunities:[posting(1)]}}),30000)));
+      sdk.functions.invoke.mockImplementation(()=>new Promise(resolve=>setTimeout(()=>resolve({data:{opportunities:[posting(1)]}}),90000)));
       let resolved=false;const pending=searchOpportunities(profile).then(value=>{resolved=true;return value;});
       await vi.advanceTimersByTimeAsync(SERVICE_TIMEOUT_MS+1);expect(resolved).toBe(false);
-      await vi.advanceTimersByTimeAsync(10000);expect(await pending).toHaveLength(1);expect(JOB_SEARCH_TIMEOUT_MS).toBe(60000);
+      await vi.advanceTimersByTimeAsync(40000);expect(resolved).toBe(false);
+      await vi.advanceTimersByTimeAsync(30000);expect(await pending).toHaveLength(1);expect(JOB_SEARCH_TIMEOUT_MS).toBeGreaterThan(90000);
     } finally {vi.useRealTimers();}
   });
 });

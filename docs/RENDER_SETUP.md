@@ -28,6 +28,7 @@ Gateway environment:
 - `AVERA_AUTH_EMAIL=false`, `AVERA_SYNC_ENABLED=false` on the headless gateway.
 - Configure the retained provider keys as described in CONNECTED_SERVICES.md.
 - `AVERA_EMAIL_FROM=Avera <noreply@avera.run>` after Resend domain verification.
+- Set `GEOCODIO_API_KEY` to your Geocodio API key in Render Environment. Never use a `VITE_` prefix or copy it into gateway-mode desktop installations.
 - Leave `OPENWEBNINJA_API_KEY` unset for OpenAI web-search-only job discovery.
 
 Do not commit secret values or put them in frontend variables. No persistent disk
