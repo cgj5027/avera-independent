@@ -22,7 +22,7 @@ import PropertyCard from '../src/components/properties/PropertyCard';
 import BillsBudget from '../src/pages/BillsBudget';
 import Properties from '../src/pages/Properties';
 import YearlyPlan from '../src/pages/YearlyPlan';
-import {setModeOwner} from '../src/lib/mode';
+import {setDataMode,setDemoWorkspace,setModeOwner} from '../src/lib/mode';
 import * as data from '../src/services/dataService';
 
 let rows;
@@ -398,4 +398,38 @@ it('opens an empty transactions view directly and keeps the add action available
  render(<MemoryRouter initialEntries={['/bills-budget?tab=transactions']}><BillsBudget/></MemoryRouter>);
  expect(await screen.findByRole('heading',{name:'All transactions'})).toBeTruthy();expect(screen.getByText('No transactions yet.')).toBeTruthy();
  expect(screen.getByRole('button',{name:'Add transaction'}).disabled).toBe(false);
+});
+
+it.each(['manual','demo'])('saves manual expenses and income from the transaction table in %s mode',async mode=>{
+  setDataMode(mode);if(mode==='demo')setDemoWorkspace({profile:'early_career'});
+  await data.createRecord('budgetCategory',{name:'Food',monthly_limit:100});
+  render(<MemoryRouter initialEntries={['/bills-budget?tab=transactions']}><BillsBudget/></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button',{name:'Add transaction',exact:true}));
+  fireEvent.change(screen.getByLabelText('Name',{exact:true}),{target:{value:'Manual lunch'}});
+  fireEvent.change(screen.getByLabelText('Amount',{exact:true}),{target:{value:'12.34'}});
+  fireEvent.click(screen.getByRole('button',{name:'Add transaction',exact:true}));
+  await waitFor(()=>expect(rows.Transaction).toHaveLength(1));
+  await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+  expect(await screen.findByText('Manual lunch')).toBeTruthy();expect(rows.Transaction[0]).toMatchObject({amount:12.34,type:'expense',source:'Manual',demo_profile:mode==='demo'?'early_career':''});
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Budget',exact:true}),{button:0,ctrlKey:false});fireEvent.click(screen.getByRole('tab',{name:'Budget',exact:true}));
+  expect(await screen.findByText('$12.34')).toBeTruthy();
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Transactions',exact:true}),{button:0,ctrlKey:false});fireEvent.click(screen.getByRole('tab',{name:'Transactions',exact:true}));
+  fireEvent.click(screen.getByRole('button',{name:'Add transaction',exact:true}));
+  fireEvent.change(screen.getByLabelText('Name',{exact:true}),{target:{value:'Manual earnings'}});
+  fireEvent.change(screen.getByLabelText('Amount',{exact:true}),{target:{value:'45.67'}});
+  fireEvent.keyDown(screen.getByLabelText('Type',{exact:true}),{key:'ArrowDown'});fireEvent.click(screen.getByRole('option',{name:'Income',exact:true}));
+  fireEvent.click(screen.getByRole('button',{name:'Add transaction',exact:true}));
+  await waitFor(()=>expect(rows.Transaction).toHaveLength(2));await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+  expect(await screen.findByText('Manual earnings')).toBeTruthy();expect(rows.Transaction[1]).toMatchObject({amount:45.67,type:'income',source:'Manual',demo_profile:mode==='demo'?'early_career':''});
+  expect((await data.listRecords('transaction'))).toHaveLength(2);
+});
+it('keeps a failed manual transaction form open with its values and saves it once on retry',async()=>{
+  render(<MemoryRouter initialEntries={['/bills-budget?tab=transactions']}><BillsBudget/></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button',{name:'Add transaction',exact:true}));
+  fireEvent.change(screen.getByLabelText('Name',{exact:true}),{target:{value:'Retry lunch'}});
+  fireEvent.change(screen.getByLabelText('Amount',{exact:true}),{target:{value:'20'}});
+  sdk.entities.Transaction.create.mockRejectedValueOnce(Error('fixture unavailable'));
+  fireEvent.click(screen.getByRole('button',{name:'Add transaction',exact:true}));
+  expect(await screen.findByText('Unable to save. Please try again.')).toBeTruthy();expect(screen.getByLabelText('Name',{exact:true}).value).toBe('Retry lunch');expect(screen.getByLabelText('Amount',{exact:true}).value).toBe('20');expect(rows.Transaction).toHaveLength(0);
+  fireEvent.click(screen.getByRole('button',{name:'Add transaction',exact:true}));await waitFor(()=>expect(rows.Transaction).toHaveLength(1));await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());expect(await screen.findByText('Retry lunch')).toBeTruthy();
 });

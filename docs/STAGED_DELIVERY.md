@@ -280,3 +280,22 @@ Manual assistive-technology/device/zoom acceptance and user review of the new
 navigation remain separate release gates. The historical SDK advanced seeding
 path is not certified for independent atomic/guest behavior. Stage 6 backup and
 migration work has not started; no production deployment was performed.
+
+### Manual transaction save correction
+
+The Transactions table owned its add dialog but received a callback that opened a
+second parent dialog instead of persisting its payload. Submitting cleared the
+first form without creating a transaction. The table now calls the actual
+create/reload handler; the unused parent dialog/state have been removed.
+Financial calculations, dataset tags and source-label rules are unchanged.
+
+Regression tests reproduce the previous failure and now verify expense/income
+creation in personal and sample modes, monthly spending updates, and preserving
+form values on a failed write followed by one successful retry. The real SQLite
+browser flow checks HTTP failures/retry, exactly two saved rows per dataset,
+list/reload persistence, budget spending and Overview tracked-income totals.
+Local checkpoint: 451 regression tests and 43 real independent browser cases
+passed, with no reported axe violations, external browser requests or page
+exceptions. Lint, all three type checks and both builds passed. Existing build
+warnings remain. No database/provider change, migration or production deployment.
+Previously submitted entries that were never written must be entered again.
