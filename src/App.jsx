@@ -30,19 +30,21 @@ import { ThemeProvider } from 'next-themes';
 export const AuthenticatedApp = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError, checkAppState } = useAuth();
   const location = useLocation();
-  const publicRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const publicRoute = ['/login', '/register', '/forgot-password', '/reset-password','/welcome'].includes(location.pathname);
   const loginPath = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
   if (!publicRoute && (isLoadingPublicSettings || isLoadingAuth)) return <LoadingState label="Checking your account" />;
   if (!publicRoute && authError && authError.type !== 'auth_required') {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     return <ErrorState message="We couldn't verify your account. Please try again." onRetry={checkAppState} />;
   }
+  if(location.pathname==='/'&&!user&&!isLoadingAuth&&!isLoadingPublicSettings)return <Navigate to="/welcome" replace/>;
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/welcome" element={<ModeEntry />} />
       <Route path="/oauth/consent" element={<OAuthConsent />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to={loginPath} replace />} />}>
       <Route element={<AppLayout key={user?.id} />}>
@@ -54,7 +56,6 @@ export const AuthenticatedApp = () => {
         <Route path="/ask-avera" element={<AskAveraPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
-      <Route path="/welcome" element={<ModeEntry />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -20,10 +20,13 @@ export const PUBLIC_COLLECTIONS = [
   'Property', 'MortgageRecord', 'ForecastRecord', 'JobProfile', 'PlaidItem',
 ] as const;
 export interface Application {
-  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean };
+  cancelPendingRequests?(): void;
+  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean; sampleWorkspaces?: boolean };
   auth: {
     /** A hint to attempt verification, never proof of authorization. */
     hasSession(): boolean;
+    startSample?(): Promise<User>;
+    leaveSample?(): Promise<unknown>;
     currentUser(): Promise<User>;
     updateProfile(fields: Fields): Promise<User>;
     signIn(email: string, password: string): Promise<unknown>;

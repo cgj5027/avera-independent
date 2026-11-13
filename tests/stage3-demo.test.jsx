@@ -3,14 +3,16 @@ import ModeEntry from '../src/pages/ModeEntry';
 import { Routes, Route } from 'react-router-dom';
 import React from 'react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from './test-utils';
+import { render, screen, fireEvent, waitFor } from './test-utils';
 import { matches } from './queryFixture';
 const sdk=vi.hoisted(()=>({auth:{me:vi.fn()},app:{getPublicSettings:vi.fn()},entities:{},functions:{invoke:vi.fn()}}));
+vi.mock('@/lib/app-params',()=>({appParams:{token:'fixture'}}));
 vi.mock('@/api/base44Client',()=>({base44:sdk}));
+import {application} from '../src/api/application';
 import * as data from '../src/services/dataService';
 import { buildDemoDataset, DEMO_PROFILE_KEYS, createDemoRecords } from '../src/services/demoProfiles';
 import { demoSandboxConfig } from '../base44/shared/demoPlaidConfigs.ts';
-import { removeDemoData, loadDemoProfile } from '../src/services/demoMode';
+import { removeDemoData, loadDemoProfile, resetDemoProfile } from '../src/services/demoMode';
 import { setModeOwner, setDataMode, setDemoWorkspace, getDemoWorkspace, getDataMode } from '../src/lib/mode';
 import { connectBank } from '../src/services/plaidClient';
 import { estimateFromTransactions } from '../src/services/plaidEstimates';
@@ -55,7 +57,7 @@ describe('demo and UI fixtures, distinct from real Plaid Sandbox',()=>{
     setDemoWorkspace({profile:'early_career'});setDataMode('demo');
     expect((await data.listRecords('account')).map(r=>r.id)).toEqual(['demo']);
     expect((await data.createRecord('goal',{name:'Demo goal',target_amount:100})).demo_profile).toBe('early_career');
-    user={id:'b'};expect((await data.listRecords('account')).map(r=>r.id)).toEqual(['other']);expect(getDemoWorkspace()).toBeNull();expect(getDataMode()).toBeNull();
+    user={id:'b'};setModeOwner('b');expect((await data.listRecords('account')).map(r=>r.id)).toEqual(['other']);expect(getDemoWorkspace()).toBeNull();expect(getDataMode()).toBeNull();
     setModeOwner('a');expect(getDemoWorkspace().profile).toBe('early_career');
   });
   it('ignores injected ordinary Item IDs during demo cleanup and preserves other users',async()=>{
@@ -95,7 +97,7 @@ describe('demo and UI fixtures, distinct from real Plaid Sandbox',()=>{
   });
   it('confirms demo reset and distinguishes mixed Sandbox plus sample planning data',()=>{
     setDemoWorkspace({profile:'early_career',plaid_item_id:'item'});setDataMode('demo');render(<DemoModeBar />);
-    expect(screen.getByText('Dataset: Plaid Sandbox + Avera sample plans')).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'Reset demo profile'}));expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText(/Dataset: Plaid Sandbox \+ Avera sample plans/)).toBeTruthy();fireEvent.click(screen.getByText(/Sample data —/));fireEvent.click(screen.getByRole('button',{name:'Reset sample scenario'}));expect(screen.getByRole('dialog')).toBeTruthy();
   });
   it('orchestrates Link open, public-token exchange and destroy with a widget fixture',async()=>{
     sdk.functions.invoke.mockResolvedValueOnce({data:{link_token:'link-sandbox-fixture'}}).mockResolvedValueOnce({data:{item_id:'item',accounts_imported:1}});
@@ -151,34 +153,22 @@ it('maps safe Link setup errors for the user instead of Axios diagnostics',async
  sdk.functions.invoke.mockRejectedValueOnce({response:{status:503,data:{code:'SANDBOX_NOT_CONFIGURED',error:'sensitive diagnostic'}}});
  await expect(connectBank()).rejects.toThrow('not configured');
 });
-it('exits directly from a non-overview page to Get Started and preserves ordinary records',async()=>{
+it('returns from a non-overview page without deleting sample or personal records',async()=>{
  setDemoWorkspace({profile:'early_career'});setDataMode('demo');
  rows.Account=[{id:'demo-account',created_by_id:'a',demo_profile:'early_career'},{id:'ordinary',created_by_id:'a'}];
- render(<Routes><Route path="/bills-budget" element={<DemoModeBar/>}/><Route path="/welcome" element={<h1>Get started with Avera</h1>}/></Routes>,{route:'/bills-budget'});
- fireEvent.click(screen.getByRole('button',{name:'Exit Demo Mode'}));
- expect(screen.getByRole('dialog',{name:'Exit demo mode?'})).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:'Exit demo',exact:true}));
- expect(await screen.findByRole('heading',{name:'Get started with Avera'})).toBeTruthy();
- expect(getDataMode()).toBeNull();expect(getDemoWorkspace()).toBeNull();
- expect(rows.Account.map(r=>r.id)).toEqual(['ordinary']);
+ render(<Routes><Route path="/bills-budget" element={<DemoModeBar/>}/><Route path="/" element={<h1>Your finances</h1>}/></Routes>,{route:'/bills-budget'});
+ fireEvent.click(screen.getByText(/Sample data —/));fireEvent.click(screen.getByRole('button',{name:'Return to personal finances'}));
+ expect(await screen.findByRole('heading',{name:'Your finances'})).toBeTruthy();
+ expect(getDataMode()).toBe('manual');expect(getDemoWorkspace().profile).toBe('early_career');
+ expect(rows.Account.map(r=>r.id)).toEqual(['demo-account','ordinary']);expect(sdk.entities.Account.delete).not.toHaveBeenCalled();
 });
-it('stays in demo mode if cleanup fails',async()=>{
- setDemoWorkspace({profile:'early_career'});setDataMode('demo');
- rows.Account=[{id:'demo-account',created_by_id:'a',demo_profile:'early_career'}];
- sdk.entities.Account.delete.mockRejectedValue(new Error('network unavailable'));
- render(<Routes><Route path="/properties" element={<DemoModeBar/>}/><Route path="/welcome" element={<h1>Get started with Avera</h1>}/></Routes>,{route:'/properties'});
- fireEvent.click(screen.getByRole('button',{name:'Exit Demo Mode'}));fireEvent.click(screen.getByRole('button',{name:'Exit demo',exact:true}));
- await waitFor(()=>expect(screen.getByRole('button',{name:'Keep exploring'}).disabled).toBe(false));
- expect(screen.queryByRole('heading',{name:'Get started with Avera'})).toBeNull();
- expect(getDataMode()).toBe('demo');expect(getDemoWorkspace().profile).toBe('early_career');
+it('makes sample scenarios a secondary disclosure and opens personal finances first',async()=>{
+ render(<Routes><Route path="/welcome" element={<ModeEntry/>}/><Route path="/" element={<h1>Your finances</h1>}/></Routes>,{route:'/welcome'});
+ expect(screen.queryByRole('button',{name:/Explore Early Career/})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Try sample data'}));expect(screen.getByRole('button',{name:'Explore Early Career Professional'})).toBeTruthy();
+ await screen.findByRole('button',{name:'Sign out'});fireEvent.click(screen.getByRole('button',{name:'Get started'}));
+ expect(await screen.findByRole('heading',{name:'Your finances'})).toBeTruthy();expect(getDataMode()).toBe('manual');
 });
-it('places the ready-to-start manual option last and opens the personal budget',async()=>{
- render(<Routes><Route path="/welcome" element={<ModeEntry/>}/><Route path="/bills-budget" element={<h1>Your budget</h1>}/></Routes>,{route:'/welcome'});
- const buttons=within(screen.getByRole('main')).getAllByRole('button');expect(buttons.map(b=>b.textContent)).toEqual(['Choose a profile','Pick a profile','Enter my information']);
- fireEvent.click(screen.getByRole('button',{name:'Enter my information'}));
- expect(await screen.findByRole('heading',{name:'Your budget'})).toBeTruthy();expect(getDataMode()).toBe('manual');
-});
-
 it('handles the real SDK Base44Error shape for Sandbox setup and request limits',async()=>{
  sdk.functions.invoke.mockRejectedValueOnce(new Base44Error('sensitive diagnostic',503,'SANDBOX_NOT_CONFIGURED',{}));
  await expect(connectBank()).rejects.toThrow('not configured');
@@ -190,10 +180,10 @@ it('handles the real SDK Base44Error shape for Sandbox setup and request limits'
 it('uses concise reset wording and an explicit reset action',()=>{
  setDemoWorkspace({profile:'early_career'});setDataMode('demo');
  render(<DemoModeBar/>);
- fireEvent.click(screen.getByRole('button',{name:'Reset demo profile'}));
- expect(screen.getByRole('dialog',{name:'Reset demo profile?'})).toBeTruthy();
- expect(screen.getByText('Start fresh with the original demo data. Your own financial records stay safe.')).toBeTruthy();
- expect(screen.getByRole('button',{name:'Reset demo',exact:true})).toBeTruthy();
+ fireEvent.click(screen.getByText(/Sample data —/));fireEvent.click(screen.getByRole('button',{name:'Reset sample scenario'}));
+ expect(screen.getByRole('dialog',{name:'Reset sample scenario?'})).toBeTruthy();
+ expect(screen.getByText('Restore this scenario’s original sample records. Changes to this scenario will be removed; personal finances and other scenarios are kept.')).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Reset sample',exact:true})).toBeTruthy();
  expect(screen.queryByRole('button',{name:'Delete',exact:true})).toBeNull();
 });
 it('shows only allowlisted connection references for a failed hosted step',async()=>{
@@ -207,4 +197,37 @@ it('reports a daily Sandbox cooldown accurately using the native SDK response',a
  sdk.functions.invoke.mockRejectedValueOnce(new Base44Error('raw diagnostic',429,'REQUEST_LIMITED',{retry_after:7200}));
  const result=await loadDemoProfile('early_career',{viaPlaid:true});
  expect(result.warning).toContain('about 2 hours');expect(result.warning).not.toContain('Wait a minute');
+});
+
+it('rejects a late record response after the selected dataset changes',async()=>{
+ setDataMode('manual');let complete; sdk.entities.Account.filter.mockImplementationOnce(()=>new Promise(resolve=>{complete=resolve;}));
+ const pending=data.listRecords('account');await vi.waitFor(()=>expect(complete).toBeTruthy());
+ setDemoWorkspace({profile:'early_career'});setDataMode('demo');complete({items:[{id:'personal',created_by_id:'a'}],has_more:false});
+ await expect(pending).rejects.toThrow('workspace changed');
+});
+it('does not mutate a record when account verification completes after switching scenarios',async()=>{
+ setDataMode('manual');let complete; sdk.auth.me.mockImplementationOnce(()=>new Promise(resolve=>{complete=resolve;}));
+ const pending=data.createRecord('bill',{name:'Stale form',amount:10});await vi.waitFor(()=>expect(complete).toBeTruthy());
+ setDemoWorkspace({profile:'early_career'});setDataMode('demo');complete({id:'a'});
+ await expect(pending).rejects.toThrow('workspace changed');expect(sdk.entities.Bill.create).not.toHaveBeenCalled();
+});
+
+it('does not activate a scenario after another tab changes the selected workspace',async()=>{
+ const previous=application.capabilities;application.capabilities={sampleWorkspaces:true};
+ try{
+  setDataMode('manual');let complete;
+  sdk.functions.invoke.mockImplementationOnce(()=>new Promise(resolve=>{complete=resolve;}));
+  const pending=loadDemoProfile('early_career');await vi.waitFor(()=>expect(complete).toBeTruthy());
+  setDataMode('sandbox');complete({data:{workspace:{profile:'early_career',plaid_item_id:null}}});
+  await expect(pending).rejects.toThrow('changed');expect(getDataMode()).toBe('sandbox');
+ }finally{application.capabilities=previous;}
+});
+
+it('refuses sample loading/reset when another account replaced the current session',async()=>{
+ const previous=application.capabilities;application.capabilities={sampleWorkspaces:true};
+ try{
+  setDemoWorkspace({profile:'early_career'});setDataMode('demo');sdk.auth.me.mockResolvedValue({id:'b'});
+  await expect(loadDemoProfile('multi_income')).rejects.toThrow('changed');await expect(resetDemoProfile()).rejects.toThrow('changed');
+  expect(sdk.functions.invoke).not.toHaveBeenCalled();expect(getDemoWorkspace().profile).toBe('early_career');
+ }finally{application.capabilities=previous;}
 });

@@ -115,6 +115,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const startSample = async () => {
+    if(user&&!user.is_sample)return user;
+    if(!application.auth.startSample)throw new Error('Sign in to use sample data.');
+    const epoch=++authEpoch.current;
+    const current=await application.auth.startSample();
+    if(epoch!==authEpoch.current)throw new Error('Your account changed. Please retry.');
+    setIsLoadingAuth(false);
+    setModeOwner(current.id);setUser(current);setIsAuthenticated(true);setAuthChecked(true);setAuthError(null);
+    return current;
+  };
+  const leaveSample = async () => {
+    if(user?.is_sample){
+      await application.auth.leaveSample?.();
+      authEpoch.current++;setUser(null);setModeOwner(null);setIsAuthenticated(false);setAuthChecked(true);setAuthError(null);
+      queryClientInstance.clear();
+    }
+  };
   const updateAccountName = async (name) => {
     const normalized = typeof name === 'string' ? name.trim() : '';
     if (!normalized || normalized.length > 100) throw new Error('Enter a name of up to 100 characters.');
@@ -167,6 +184,8 @@ export const AuthProvider = ({ children }) => {
       authChecked,
       logout,
       updateAccountName,
+      startSample,
+      leaveSample,
       navigateToLogin,
       checkUserAuth,
       checkAppState

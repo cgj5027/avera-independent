@@ -1,3 +1,4 @@
+import GuestConnectedState from '@/components/states/GuestConnectedState';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Loader2, ShieldCheck } from 'lucide-react';
@@ -29,6 +30,7 @@ const READ_ONLY_NOTE =
 export default function AskAveraConversation() {
   const { user } = useAuth();
   const dataset = useSyncExternalStore(subscribeToModeChanges, () => JSON.stringify([getDataMode(), getDemoWorkspace()?.profile]));
+  if(user?.is_sample)return <GuestConnectedState/>;
   return user ? <Conversation key={`${user.id}:${dataset}`} /> : <p role="status" className="p-4 text-base text-muted-foreground">Sign in to ask about your finances.</p>;
 }
 

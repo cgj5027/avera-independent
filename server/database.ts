@@ -56,7 +56,7 @@ export function openDatabase(config: ReturnType<typeof readServerConfig>): Datab
   return config.storage.driver === 'sqlite'
     ? sqliteDatabase(config.storage.path!) : postgresDatabase(config.storage.connectionString!);
 }
-export async function migrate(db: Database, targetVersion: 1 | 2 = 2) {
+export async function migrate(db: Database, targetVersion: 1 | 2 | 3 = 3) {
   await db.transaction(async tx => {
     if (db.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(718303)');
     await tx.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
@@ -96,6 +96,10 @@ export async function migrate(db: Database, targetVersion: 1 | 2 = 2) {
       await tx.query(`CREATE TABLE oauth_accounts(provider TEXT NOT NULL, subject TEXT NOT NULL,
         user_id TEXT NOT NULL REFERENCES users(id), PRIMARY KEY(provider,subject))`);
       await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(2,$1)',[new Date().toISOString()]);
+    }
+    if(version < 3 && targetVersion >= 3){
+      await tx.query('CREATE TABLE sample_workspaces(owner_id TEXT NOT NULL REFERENCES users(id), profile TEXT NOT NULL, initialized_at TEXT NOT NULL, PRIMARY KEY(owner_id,profile))');
+      await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(3,$1)',[new Date().toISOString()]);
     }
   });
 }

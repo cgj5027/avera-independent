@@ -249,3 +249,34 @@ checks passed, with no reported axe violations. Lint, all three type checks and
 both production builds passed. Existing large-bundle and compatibility-only
 Base44 configuration warnings remain. Manual assistive-technology validation,
 cross-OS packaging and live Geocodio acceptance are separate gates.
+
+## Stage 5: landing page, website navigation and isolated samples
+
+PRs #12 and #13 are merged; the owner reported Geocodio lookup working after
+rollout. That report is live owner acceptance, distinct from fixture tests.
+
+The independent application now uses the secondary landing-page sample picker,
+website header/mobile menu and compact scenario controls described in
+[Stage 5 behavior, navigation paths and upgrade steps](STAGE_5_WEBSITE.md).
+Account-free samples use expiring, isolated cookie identities with no provider
+access. Registered scenarios persist across selection changes. Migration 3 adds a
+manifest; loading/reset is transactional and covers forecasts/contributions.
+One owner-scoped preference, cross-tab events, full dataset remounting, request
+cancellation and late-response/late-selection rejection protect switching.
+Get started prioritizes personal finances; advanced Plaid testing stays in Settings.
+
+Local checkpoint on Linux/Node 24: 26 regression files / 448 tests passed; 71 native
+SQLite/PostgreSQL 16 checks passed with no skips; 41 existing independent-runtime
+browser cases, 49 new real Stage 5 browser checks and 252 responsive compatibility
+fixture checks plus 84 chat/drawer layout checks passed, with no reported axe violations or external requests in the
+independent browser suites. New checks cover guest isolation/expiry, preserved
+edits, empty scenarios, transactional rollback, shared-tab switching and clearing
+unsent assistant drafts. Dependency audits report zero advisories; redacted staged/history secret scans
+passed. Lint and all three type checks passed. Both builds pass
+with existing large-bundle / compatibility-only Base44 configuration warnings.
+
+Status: implementation and automated acceptance complete, subject to final CI.
+Manual assistive-technology/device/zoom acceptance and user review of the new
+navigation remain separate release gates. The historical SDK advanced seeding
+path is not certified for independent atomic/guest behavior. Stage 6 backup and
+migration work has not started; no production deployment was performed.

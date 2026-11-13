@@ -22,13 +22,14 @@ import PropertyCard from '../src/components/properties/PropertyCard';
 import BillsBudget from '../src/pages/BillsBudget';
 import Properties from '../src/pages/Properties';
 import YearlyPlan from '../src/pages/YearlyPlan';
+import {setModeOwner} from '../src/lib/mode';
 import * as data from '../src/services/dataService';
 
 let rows;
 let user;
 beforeEach(() => {
   vi.clearAllMocks();
-  user = { id: 'user-a' };
+  user = { id: 'user-a' };setModeOwner(user.id);
   appParams.token = 'test-token';
   rows = {};
   sdk.auth.me.mockImplementation(async () => user);
@@ -49,11 +50,11 @@ beforeEach(() => {
 describe('owner-scoped persistence with mocked SDK (not deployed RLS)', () => {
   it('isolates two users, strips forged ownership, persists CRUD', async () => {
     const a=await data.createRecord('incomeSource',{name:'Salary',amount:100,created_by_id:'user-b'});
-    user={id:'user-b'};
+    user={id:'user-b'};setModeOwner(user.id);
     expect(await data.listRecords('incomeSource')).toEqual([]);
     await expect(data.updateRecord('incomeSource',a.id,{amount:200})).rejects.toThrow('cannot access');
     await expect(data.deleteRecord('incomeSource',a.id)).rejects.toThrow('cannot access');
-    user={id:'user-a'};
+    user={id:'user-a'};setModeOwner(user.id);
     await data.updateRecord('incomeSource',a.id,{amount:200});
     expect((await data.listRecords('incomeSource'))[0].amount).toBe(200);
     await data.deleteRecord('incomeSource',a.id);
@@ -125,7 +126,7 @@ describe('financial UI integration', () => {
     expect(screen.getByText('$100,000.00')).toBeTruthy();expect(screen.getByText('$60,000.00')).toBeTruthy();expect(screen.getByText('User-provided estimate, as of Jan 1, 2026')).toBeTruthy();
   });
   it('bill create, reload, payment and next-cycle action work together', async () => {
-    render(<BillsBudget />);fireEvent.click(await screen.findByRole('button',{name:'Add bill'}));
+    render(<MemoryRouter><BillsBudget /></MemoryRouter>);fireEvent.click(await screen.findByRole('button',{name:'Add bill'}));
     fireEvent.change(screen.getByLabelText('Bill name'),{target:{value:'Rent'}});
     fireEvent.change(screen.getByLabelText('Amount'),{target:{value:'1000'}});
     fireEvent.change(screen.getByLabelText('Next due date'),{target:{value:'2026-01-31'}});
@@ -170,7 +171,7 @@ describe('primary manual workflows with SDK fixtures', () => {
     await waitFor(()=>expect(rows.Property).toHaveLength(1));expect(rows.MortgageRecord).toHaveLength(1);expect(rows.Property[0].nickname).toBe('Rental');
   });
   it('adds a goal, records savings, edits it and deletes it', async () => {
-    render(<BillsBudget />);const goalsTab=await screen.findByRole('tab',{name:'Goals'});fireEvent.mouseDown(goalsTab,{button:0,ctrlKey:false});fireEvent.click(goalsTab);fireEvent.click(await screen.findByRole('button',{name:'Add goal'}));
+    render(<MemoryRouter><BillsBudget /></MemoryRouter>);const goalsTab=await screen.findByRole('tab',{name:'Goals'});fireEvent.mouseDown(goalsTab,{button:0,ctrlKey:false});fireEvent.click(goalsTab);fireEvent.click(await screen.findByRole('button',{name:'Add goal'}));
     fireEvent.change(screen.getByLabelText('Goal name'),{target:{value:'Emergency'}});
     fireEvent.change(screen.getByLabelText('Target amount'),{target:{value:'1000'}});
     const adds=screen.getAllByRole('button',{name:'Add goal'});fireEvent.click(adds[adds.length-1]);
@@ -228,7 +229,7 @@ it('edits and deletes logged spending through the budget UI', async () => {
   await data.createRecord('budgetCategory',{name:'Food',monthly_limit:100});
   const lunch = await data.createRecord('transaction',{description:'Lunch',category:'Food',amount:10,type:'expense',date:currentDate});
   const earlier = await data.createRecord('transaction',{description:'Earlier lunch',category:'Food',amount:20,type:'expense',date:previousDate});
-  render(<BillsBudget />);
+  render(<MemoryRouter><BillsBudget /></MemoryRouter>);
   const tab=await screen.findByRole('tab',{name:'Budget',exact:true});
   fireEvent.mouseDown(tab,{button:0,ctrlKey:false});fireEvent.click(tab);
   fireEvent.click(await screen.findByRole('button',{name:/View transactions/}));
@@ -361,7 +362,7 @@ it('recategorization moves spending between budget cards and persists after relo
   await data.createRecord('budgetCategory', {name:'Travel',monthly_limit:200});
   const transaction = await data.createRecord('transaction', {description:'Lunch',category:'Food',amount:25,type:'expense',date});
   await data.assignTransactionCategory(transaction.id, ' Travel ');
-  let view = render(<BillsBudget />);
+  let view = render(<MemoryRouter><BillsBudget /></MemoryRouter>);
   await screen.findByRole('tab', {name:'Budget'});
   fireEvent.mouseDown(screen.getByRole('tab', {name:'Budget'}), {button:0,ctrlKey:false});
   await waitFor(() => expect(screen.getByRole('heading', {name:'Travel'})).toBeTruthy());
@@ -373,7 +374,7 @@ it('recategorization moves spending between budget cards and persists after relo
   expect(rows.Transaction[0].category).toBe('Hobbies');
   await data.assignTransactionCategory(transaction.id, 'hobbies');
   expect(rows.BudgetCategory.filter(row => row.name === 'Hobbies')).toHaveLength(1);
-  view = render(<BillsBudget />);
+  view = render(<MemoryRouter><BillsBudget /></MemoryRouter>);
   await screen.findByRole('tab', {name:'Budget'});
   fireEvent.mouseDown(screen.getByRole('tab', {name:'Budget'}), {button:0,ctrlKey:false});
   await waitFor(() => expect(screen.getByRole('heading', {name:'Hobbies'})).toBeTruthy());
@@ -391,4 +392,10 @@ it.each(['/welcome', '/bills-budget'])('offers sign out directly on %s', async p
   fireEvent.click(await screen.findByRole('button', {name:'Sign out'}));
   expect(sdk.auth.logout).toHaveBeenCalledWith(new URL('/login', window.location.origin).href);
   expect(screen.queryByRole('button', {name:'Sign out'})).toBeNull();
+});
+
+it('opens an empty transactions view directly and keeps the add action available',async()=>{
+ render(<MemoryRouter initialEntries={['/bills-budget?tab=transactions']}><BillsBudget/></MemoryRouter>);
+ expect(await screen.findByRole('heading',{name:'All transactions'})).toBeTruthy();expect(screen.getByText('No transactions yet.')).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Add transaction'}).disabled).toBe(false);
 });

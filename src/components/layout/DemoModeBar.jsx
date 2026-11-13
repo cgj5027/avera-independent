@@ -1,95 +1,27 @@
-import { useNavigate } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronDown, FlaskConical, RotateCcw, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ConfirmDeleteDialog from '@/components/finance/ConfirmDeleteDialog';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/lib/AuthContext';
 import { DEMO_PROFILES } from '@/services/demoProfiles';
-import { resetDemoProfile, exitDemoMode } from '@/services/demoMode';
-import { getDemoWorkspace, clearDataMode } from '@/lib/mode';
-
-/**
- * Persistent Demo Mode bar (Stage 3B): labels the experience, names the
- * dataset's source, and offers reset (scoped to the signed-in user's active
- * demo workspace) and exit. Ordinary financial records are never touched.
- */
-export default function DemoModeBar({ compact = false }) {
-  const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [exitOpen, setExitOpen] = useState(false);
-  const [resetOpen,setResetOpen]=useState(false);
-  const { toast } = useToast();
-  const ws = getDemoWorkspace();
-  if (!ws) return null;
-  const profile = DEMO_PROFILES[ws.profile];
-  const Container = compact ? 'details' : 'div';
-
-  const reset = async () => {
-    setBusy(true);
-    try {
-      const result = await resetDemoProfile();
-      toast({
-        title: 'Demo profile reset',
-        description: result.warning || 'The selected profile was restored to its original state.',
-      });
-      window.location.reload();
-    } catch {
-      setBusy(false);
-      toast({ title: 'Reset failed', description: 'Please try again.', variant: 'destructive' });
-    }
-  };
-
-  const exit = async () => {
-    setBusy(true);
-    try {
-      await exitDemoMode(clearDataMode);
-      setExitOpen(false);
-      navigate('/welcome', { replace: true });
-    } catch {
-      setBusy(false);
-      toast({ title: 'Exit failed', description: 'Please try again.', variant: 'destructive' });
-    }
-  };
-
-  return (
-    <Container className={compact ? 'group mb-2 shrink-0 rounded-2xl border border-border bg-surface shadow-sm' : 'mb-6 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-sm sm:px-6'}>
-      {compact ? <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-2xl px-4 py-3 text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6 [&::-webkit-details-marker]:hidden">
-        <FlaskConical className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-        <span>Demo Mode — {profile?.label ?? 'Workspace'}</span>
-        <ChevronDown className="ml-auto h-4 w-4 shrink-0 group-open:rotate-180" aria-hidden="true" />
-      </summary> : (
-      <span className="flex items-center gap-2 font-heading text-base font-semibold text-foreground">
-        <FlaskConical className="h-5 w-5 text-primary" aria-hidden="true" />
-        Demo Mode — {profile?.label ?? 'Workspace'}
-      </span>
-      )}
-      <div className={compact ? 'flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-border px-4 py-3 sm:px-6' : 'contents'}>
-      <span className="rounded-lg border border-border bg-surface-subtle px-2.5 py-1 text-sm text-muted-foreground">
-        {ws.plaid_item_id ? 'Dataset: Plaid Sandbox + Avera sample plans' : 'Dataset: Avera sample data'}
-      </span>
-      <span className="hidden text-sm text-muted-foreground md:inline">Nothing here moves real money.</span>
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" className="min-h-11 rounded-xl" onClick={()=>setResetOpen(true)} disabled={busy}>
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset demo profile
-        </Button>
-        <Button variant="ghost" size="sm" className="min-h-11 rounded-xl" onClick={() => setExitOpen(true)} disabled={busy}>
-          <LogOut className="h-4 w-4" aria-hidden="true" />
-          Exit Demo Mode
-        </Button>
-      </div>
-      </div>
-      <ConfirmDeleteDialog open={resetOpen} onOpenChange={setResetOpen} title="Reset demo profile?" description="Start fresh with the original demo data. Your own financial records stay safe." confirmLabel="Reset demo" cancelLabel="Keep exploring" onConfirm={reset} busy={busy} />
-      <ConfirmDeleteDialog
-        open={exitOpen}
-        onOpenChange={setExitOpen}
-        title="Exit demo mode?"
-        description="Your demo data will be cleared. Your own financial records stay safe."
-        confirmLabel="Exit demo"
-        cancelLabel="Keep exploring"
-        onConfirm={exit}
-        busy={busy}
-      />
-    </Container>
-  );
+import { resetDemoProfile,exitDemoMode } from '@/services/demoMode';
+import { getDataMode,getDemoWorkspace } from '@/lib/mode';
+export default function DemoModeBar(){
+ const navigate=useNavigate(),{user,leaveSample}=useAuth(),{toast}=useToast();
+ const [busy,setBusy]=useState(false),[resetOpen,setResetOpen]=useState(false);
+ const ws=getDemoWorkspace();
+ if(getDataMode()!=='demo'||!ws)return <div className="mx-auto flex w-full max-w-6xl justify-end px-4 pt-3 sm:px-6"><Link to="/welcome?sample=1" className="rounded-lg py-2 text-sm font-medium text-primary underline underline-offset-4">Try sample data</Link></div>;
+ const reset=async()=>{setBusy(true);try{await resetDemoProfile();setResetOpen(false);setBusy(false);toast({title:'Sample scenario reset'});}catch(error){setBusy(false);toast({title:'Reset failed',description:error.code==='SAMPLE_BANK_CONNECTED'?'Disconnect this scenario’s test bank in Settings before resetting.':'Your previous workspace has been kept. Please retry.',variant:'destructive'});}};
+ const exit=async()=>{setBusy(true);try{if(user?.is_sample){await leaveSample();navigate('/welcome');}else{await exitDemoMode();navigate('/');}}catch{setBusy(false);toast({title:'Unable to switch',description:'Please retry.',variant:'destructive'});}};
+ return <details className="group mx-auto w-full max-w-6xl shrink-0 border-b border-border bg-surface-subtle">
+  <summary className="flex min-h-12 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 sm:px-6"><span>Sample data — {DEMO_PROFILES[ws.profile]?.label}</span><span className="text-xs text-muted-foreground">Scenario options</span></summary>
+  <div className="flex flex-wrap items-center gap-3 border-t border-border px-4 py-4 sm:px-6">
+   <p className="w-full text-sm text-muted-foreground">{ws.plaid_item_id?'Dataset: Plaid Sandbox + Avera sample plans':'Dataset: Avera sample data'}. Your personal finances stay separate. Leaving keeps your changes.{user?.is_sample?' Guest scenarios are available for this browser session, up to eight hours. Create an account for personal records and connected services.':''}</p>
+   <Button asChild variant="outline" className="min-h-11" disabled={busy}><Link to="/welcome?sample=1">Change scenario</Link></Button>
+   <Button variant="outline" className="min-h-11" onClick={()=>setResetOpen(true)} disabled={busy}>Reset sample scenario</Button>
+   <Button variant="secondary" className="min-h-11" onClick={exit} disabled={busy}>{user?.is_sample?'Back to landing page':'Return to personal finances'}</Button>
+  </div>
+  <ConfirmDeleteDialog open={resetOpen} onOpenChange={setResetOpen} title="Reset sample scenario?" description="Restore this scenario’s original sample records. Changes to this scenario will be removed; personal finances and other scenarios are kept." confirmLabel="Reset sample" cancelLabel="Keep exploring" onConfirm={reset} busy={busy}/>
+ </details>;
 }

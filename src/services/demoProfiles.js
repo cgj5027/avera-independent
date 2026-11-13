@@ -11,7 +11,7 @@
  *
  * Pure functions only — no database access here.
  */
-import { round2 } from './financialCalculations';
+import { round2 } from '../../shared/money.js';
 
 export const DEMO_SOURCE_LABEL = 'Sample data';
 export const DEMO_NOTE = 'Avera demo dataset — sample information, not imported from a bank.';

@@ -4,12 +4,15 @@ import { PUBLIC_COLLECTIONS } from '../contracts.ts';
 export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), navigate=(path: string)=>{window.location.href=path;} }: {
   fetcher?: typeof fetch; navigate?: (path: string)=>void;
 } = {}): Application {
+  const pending=new Set<AbortController>();
   async function request(path: string, method='GET', input?: unknown) {
     let response: Response;
+    const controller=new AbortController();pending.add(controller);
     try { response=await fetcher('/api/v1'+path,{
-      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(path==='/services/searchJobOpportunities'?180000:path.startsWith('/services/')?120000:20000),
+      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(path==='/services/searchJobOpportunities'?180000:path.startsWith('/services/')?120000:20000)]),
       headers:{'Content-Type':'application/json'},...(input===undefined ? {} : {body:JSON.stringify(input)}),
     }); } catch { throw Object.assign(new Error('Local service is unavailable.'),{status:0,code:'SERVICE_UNAVAILABLE'}); }
+    finally { pending.delete(controller); }
     let data: Fields;
     try { data=await response.json(); }
     catch { throw Object.assign(new Error('Invalid service response.'),{status:502,code:'INVALID_RESPONSE'}); }
@@ -23,11 +26,14 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     try { const u=new URL(raw,window.location.origin); return u.origin===window.location.origin && !u.pathname.startsWith('//') && !u.pathname.includes('\\') ? u.pathname+u.search : '/'; }
     catch { return '/'; }
   }
-  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true};
+  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true,sampleWorkspaces:true};
   const collections=new Map<string,Collection>();
   return {
     capabilities,
+    cancelPendingRequests(){for(const controller of pending)controller.abort();pending.clear();},
     auth:{
+      startSample:()=>request('/auth/sample','POST',{}),
+      leaveSample:()=>request('/auth/sample/leave','POST',{}),
       hasSession:()=>true, // Cookie-only sessions must be verified by the server.
       currentUser:()=>request('/auth/me'),updateProfile:fields=>request('/auth/me','PATCH',fields),
       signIn:(email,password)=>request('/auth/login','POST',{email,password}),

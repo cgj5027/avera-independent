@@ -121,3 +121,7 @@ Provide authorized exports and provider accounts securely; approve navigation,
 supported OS versions/architectures, retention and final AI-sharing policy;
 participate in desktop acceptance. Supply signing identities if public installers
 require them. Multi-device sync remains out of scope for version 1.
+
+Stage 5 implementation and its remaining manual acceptance gates are recorded in
+[the website/sample guide](STAGE_5_WEBSITE.md). Multi-device synchronization and
+automated recovery remain outside this stage.
