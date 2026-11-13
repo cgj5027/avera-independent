@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { application } from "@/api/application";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,13 @@ import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
-  const [email, setEmail] = useState("");
+  const [params] = useSearchParams();
+  const [email, setEmail] = useState(params.get("verify") || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
+  const [showOtp, setShowOtp] = useState(Boolean(params.get("verify")));
   const [otpCode, setOtpCode] = useState("");
 
   const handleSubmit = async (e) => {

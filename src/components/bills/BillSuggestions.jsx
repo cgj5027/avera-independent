@@ -21,7 +21,7 @@ export default function BillSuggestions({ onAdded, children = null }) {
       if(!Array.isArray(data.suggestions)) throw new Error('Invalid suggestion response.');
       setRows(data.suggestions.map(s=>({...s,keep:false})));
       setMortgages(data.mortgages_tracked || 0);
-      setMessage(data.ai_available ? (data.suggestions.length?'Review each suggestion. Nothing is selected automatically.':'No clear recurring bills found. At least three recent, regularly spaced payments are required.'):'AI review is unavailable. Try again later; nothing was added.');
+      setMessage(data.ai_available ? (data.suggestions.length?'Review each suggestion. Nothing is selected automatically.':'No clear recurring bills found. At least three recent, regularly spaced payments are required.'):data.suggestions.length?'AI review is unavailable. These estimates use payment patterns only. Review every suggestion; nothing was added.':'AI review is unavailable. Try again later; nothing was added.');
     } catch(e){setError(e.message);} finally{setBusy(false);}
   };
   const update=(fingerprint,fields)=>setRows(current=>current.map(r=>r.fingerprint===fingerprint?{...r,...fields}:r));

@@ -10,6 +10,8 @@ function dto(row: Row) {
 }
 function dedupe(name: string, fields: Record<string, any>): string | null {
   if (name === 'BudgetCategory') return JSON.stringify([fields.demo_profile ?? '', fields.name.trim().toLowerCase()]);
+  if ((name === 'Account' || name === 'Transaction') && fields.import_key) return fields.import_key;
+  if (name === 'PlaidItem') return fields.item_id;
   if (name === 'GoalContribution') return fields.contribution_key;
   return null;
 }
@@ -56,10 +58,10 @@ export class RecordStore {
       return { items:items.map(dto),has_more:rows.length>plan.limit,next_cursor:rows.length>plan.limit ? plan.cursor(items[items.length-1]) : null };
     });
   }
-  update(owner: string, name: string, id: string, input: unknown) {
+  update(owner: string, name: string, id: string, input: unknown, trusted=false) {
     return this.db.transaction(async tx => {
       const previous=await this.raw(tx,owner,name,id,true);
-      const fields=validateRecord(name,input,body(previous));
+      const fields=validateRecord(name,input,body(previous),trusted);
       await this.reference(tx,owner,name,fields);
       const at=new Date().toISOString(), revision=Number(previous.revision)+1;
       const rows=await tx.query(`UPDATE records SET body=$1,updated_at=$2,revision=$3,dedupe_key=$4
@@ -68,8 +70,8 @@ export class RecordStore {
       return dto(rows[0]);
     });
   }
-  delete(owner: string, name: string, id: string) {
-    if (name === 'PlaidItem') invalid('This collection is managed by a service.');
+  delete(owner: string, name: string, id: string, trusted=false) {
+    if (name === 'PlaidItem' && !trusted) invalid('This collection is managed by a service.');
     return this.db.transaction(async tx => {
       const parent=await this.raw(tx,owner,name,id,true);
       if (name === 'GoalContribution' && !body(parent).demo_profile) invalid('Delete the goal to remove its contributions.');

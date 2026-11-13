@@ -1,7 +1,7 @@
 import { sandboxErrorMessage } from './sandboxErrors';
 /**
  * Plaid Sandbox client — frontend seam. Every credential-bearing call runs in
- * a Base44 backend function (base44/functions/plaid*), so the browser never
+ * the configured backend service, so the browser never
  * sees a credential. This module only orchestrates the Link widget and
  * invokes those functions.
  */

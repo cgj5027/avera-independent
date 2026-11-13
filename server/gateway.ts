@@ -1,0 +1,10 @@
+import { gatewayNetwork } from './gateway-config.ts';
+import { openDatabase } from './database.ts';
+import { readServerConfig } from './config.ts';
+import { startLocalServer } from './http.ts';
+process.umask(0o077);
+if(!process.env.AVERA_GATEWAY_GRANTS_FILE)throw new Error('Configure a private gateway grant file.');
+const network=gatewayNetwork(process.env);
+const runtime=await startLocalServer({db:openDatabase(readServerConfig(process.env)),...network,gatewayOnly:true,env:process.env});
+console.log(`Avera gateway is available at ${network.publicOrigin??runtime.url}`);
+for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{void runtime.close().then(()=>process.exit(0));});

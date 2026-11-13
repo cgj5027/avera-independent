@@ -1,3 +1,4 @@
+import ConnectedServices from '@/components/settings/ConnectedServices';
 import AccountNameForm from '@/components/settings/AccountNameForm';
 import { Link } from 'react-router-dom';
 import { Info } from 'lucide-react';
@@ -42,6 +43,8 @@ export default function Settings() {
         <SettingSection title="Household profile" description="Household type, pay frequency, budget style, and preferences.">
           <HouseholdForm />
         </SettingSection>
+
+        <ConnectedServices />
 
         <SettingSection title="Bank connections" description="Simulated connections only in this stage.">
           <BankConnections />

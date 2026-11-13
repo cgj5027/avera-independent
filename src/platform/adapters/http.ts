@@ -7,7 +7,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
   async function request(path: string, method='GET', input?: unknown) {
     let response: Response;
     try { response=await fetcher('/api/v1'+path,{
-      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(20000),
+      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(path.startsWith('/services/')?120000:20000),
       headers:{'Content-Type':'application/json'},...(input===undefined ? {} : {body:JSON.stringify(input)}),
     }); } catch { throw Object.assign(new Error('Local service is unavailable.'),{status:0,code:'SERVICE_UNAVAILABLE'}); }
     let data: Fields;
@@ -23,17 +23,17 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     try { const u=new URL(raw,window.location.origin); return u.origin===window.location.origin && !u.pathname.startsWith('//') && !u.pathname.includes('\\') ? u.pathname+u.search : '/'; }
     catch { return '/'; }
   }
-  function unavailable(): never { throw new Error('This account service is not configured in this installation.'); }
+  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true};
   const collections=new Map<string,Collection>();
   return {
-    capabilities:{oauth:false,passwordReset:false,emailVerification:false},
+    capabilities,
     auth:{
       hasSession:()=>true, // Cookie-only sessions must be verified by the server.
       currentUser:()=>request('/auth/me'),updateProfile:fields=>request('/auth/me','PATCH',fields),
       signIn:(email,password)=>request('/auth/login','POST',{email,password}),
       register:fields=>request('/auth/register','POST',fields),
-      verifyEmail:async()=>unavailable(),setSessionToken:()=>unavailable(),resendVerification:async()=>unavailable(),
-      requestPasswordReset:async()=>unavailable(),resetPassword:async()=>unavailable(),signInWithProvider:()=>unavailable(),
+      verifyEmail:fields=>request('/auth/verify','POST',fields),setSessionToken:()=>{throw new Error('Sessions use private server cookies.');},resendVerification:email=>request('/auth/resend','POST',{email}),
+      requestPasswordReset:email=>request('/auth/request-reset','POST',{email}),resetPassword:fields=>request('/auth/reset','POST',fields),signInWithProvider:(provider,returnTo)=>{if(provider!=='google')throw new Error('Unsupported sign-in provider.');navigate('/api/v1/auth/google/start?returnTo='+encodeURIComponent(returnPath(returnTo)));},
       signOut:async redirect=>{ await request('/auth/logout','POST',{}); if(redirect) navigate(returnPath(redirect)); },
       redirectToSignIn:returnTo=>navigate('/login?returnTo='+encodeURIComponent(returnPath(returnTo))),
     },
@@ -52,7 +52,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     }},
     services:{invoke:async(name,payload={})=>({data:await request('/services/'+encodeURIComponent(name),'POST',payload)})},
     files:{parseResume:async input=>({data:await request('/services/parseResume','POST',input)})},
-    settings:{getPublic:()=>request('/settings/public')},
+    settings:{getPublic:async()=>{const data=await request('/settings/public');const auth=data.public_settings?.auth;capabilities.oauth=auth?.oauth===true;capabilities.passwordReset=auth?.password_reset===true;capabilities.emailVerification=auth?.email_verification===true;return data;}},
     consent:{getInfo:async()=>new Response('{}',{status:501}),respond:async()=>new Response('{}',{status:501})},
   };
 }
