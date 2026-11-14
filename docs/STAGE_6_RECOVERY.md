@@ -1,6 +1,6 @@
 # Stage 6: backup, transfer and recovery
 
-The independent runtime provides **Settings → Backups & recovery**. This covers
+The independent runtime provides **Settings → Backups & recovery tab**. This covers
 one signed-in account's personal records, saved sample datasets, relationships and
 retained attachments. It never exports passwords, sessions, provider keys, gateway
 grants or bank authorizations. Guests and the Base44 compatibility adapter do not
