@@ -326,3 +326,32 @@ Lint, all three type checks and both builds passed. Dependency audits reported
 zero advisories; redacted history and staged-change secret scans found no leaks.
 Existing large-bundle and compatibility-only Base44 configuration warnings remain.
 CI and the owner acceptance steps above are separate from this local checkpoint.
+
+## Stage 7: distribution and Base44 exit (in progress)
+
+The owner reported the Stage 6 restore rehearsal and Render PostgreSQL backup
+completed, and the Settings subtabs merged/tested. Stage 7 starts on its own branch.
+Checkpoint A is the [portable desktop preview](STAGE_7_DISTRIBUTION.md): allowlisted
+packages without Base44 runtime/dependencies or installation secrets; OS launchers;
+a private data home separate from app files; integrity checks; graceful IPC shutdown;
+and copied-package upgrade/offline/recovery automation. The sample generator now
+lives in shared code so the backend does not require frontend source files.
+
+This preview requires Node.js LTS; it is not a self-contained signed installer.
+The new desktop CI matrix targets Windows/macOS/Linux with Node 22/24. Final
+physical-device/cross-architecture acceptance, inbound MCP replacement, repository
+SDK/plugin retirement, real migration/provider acceptance and Base44 cancellation
+remain open. Stage 7 is not marked complete by this checkpoint.
+
+Checkpoint A local evidence (Linux/Node 24): 454 regression tests passed; all 95
+native SQLite/PostgreSQL 16 checks passed with no skips. A copied-package test
+passed with external Node traffic blocked, covering real shell-launcher checks,
+tamper rejection, manual writes, deterministic suggestions, unavailable gateway/AI,
+exclusive data-home use, preserved data/keys across app-folder replacement and
+backup/export/restore/session revocation. All 43 existing independent finance
+browser checks passed against the copied package, including process restart,
+with no reported axe violations, external requests or browser exceptions. Lint,
+all three type checks, both builds, workflow YAML/shell/script syntax checks and
+dependency audits passed (zero known advisories). The independent build keeps the
+existing large-bundle warning; compatibility builds also warn about absent Base44
+configuration. Cross-OS CI and owner/device acceptance are separate gates.

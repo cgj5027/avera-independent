@@ -26,3 +26,8 @@ storage never automatically migrates records.
 Stage 5 adds the [website landing/navigation and isolated sample flow](docs/STAGE_5_WEBSITE.md), including account-free samples in the independent runtime.
 
 Stage 6 implements [encrypted backups, guided recovery and export migration](docs/STAGE_6_RECOVERY.md). Real-data migration and off-device/hosted recovery acceptance still require owner actions.
+
+Stage 7 is in progress. Its first checkpoint adds [portable desktop preview
+packages and launchers](docs/STAGE_7_DISTRIBUTION.md). They require Node.js LTS;
+MCP replacement, compatibility dependency retirement and final desktop/cutover
+acceptance remain open gates.

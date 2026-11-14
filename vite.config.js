@@ -1,13 +1,14 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { fileURLToPath } from 'node:url'
+import { frontendNotices } from './scripts/frontend-notices.mjs'
 
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backend = env.VITE_AVERA_BACKEND ?? 'base44';
   if (!['base44', 'http'].includes(backend)) throw new Error('Invalid VITE_AVERA_BACKEND.');
-  const plugins = [react()];
+  const plugins = [react(), ...(backend === 'http' ? [frontendNotices()] : [])];
   if (backend === 'base44') {
     const { default: base44 } = await import('@base44/vite-plugin');
     plugins.unshift(base44({

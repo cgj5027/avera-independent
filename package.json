@@ -22,7 +22,9 @@
     "test:stage5:browser": "node tests/stage5-browser.cjs",
     "test:local:browser": "node tests/local-runtime-browser.cjs",
     "recovery": "node --env-file-if-exists=.env.local --experimental-strip-types server/recovery-cli.ts",
-    "start:gateway": "node --env-file-if-exists=.env.local --experimental-strip-types server/gateway.ts"
+    "start:gateway": "node --env-file-if-exists=.env.local --experimental-strip-types server/gateway.ts",
+    "package:desktop": "node scripts/package-desktop.mjs",
+    "test:desktop": "node --experimental-strip-types --test tests/desktop-package.node.test.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.57",
