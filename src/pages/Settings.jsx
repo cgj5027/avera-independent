@@ -1,3 +1,5 @@
+import { application } from '@/api/application';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import BackupRecovery from '@/components/settings/BackupRecovery';
 import GuestConnectedState from '@/components/states/GuestConnectedState';
 import ConnectedServices from '@/components/settings/ConnectedServices';
@@ -18,7 +20,14 @@ export default function Settings() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader title="Settings" subtitle="Profile, household, connections, and appearance." />
-      <div className="space-y-4">
+      <Tabs defaultValue="general">
+        <TabsList aria-label="Settings sections" className="mb-4 flex h-auto flex-wrap justify-start gap-1">
+          <TabsTrigger value="general" className="min-h-11 rounded-xl px-4">General</TabsTrigger>
+          {!user?.is_sample && application.capabilities?.recovery && (
+            <TabsTrigger value="recovery" className="min-h-11 rounded-xl px-4">Backups &amp; recovery</TabsTrigger>
+          )}
+        </TabsList>
+        <TabsContent value="general" className="space-y-4">
         <SettingSection title="Account" description="Your Avera account details.">
           {user && !user.is_sample ? (
             <div className="space-y-4">
@@ -37,8 +46,6 @@ export default function Settings() {
             </Button>
           )}
         </SettingSection>
-
-        {!user?.is_sample&&<BackupRecovery/>}
 
         <SettingSection title="Appearance" description="A warm, organic dark mode is available.">
           <ThemeSelect />
@@ -76,7 +83,12 @@ export default function Settings() {
             Bill reminders are shown in the app. Email and push notification delivery are not available.
           </p>
         </SettingSection>
-      </div>
+
+        </TabsContent>
+        {!user?.is_sample && application.capabilities?.recovery && (
+          <TabsContent value="recovery"><BackupRecovery /></TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
