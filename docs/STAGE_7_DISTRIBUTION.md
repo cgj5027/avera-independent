@@ -12,6 +12,8 @@ separate credential recovery and final data migration still need recorded accept
 `npm run package:desktop` assembles `release/avera-desktop` from an explicit allowlist:
 backend, shared finance/sample schemas and logic, built website, launch/verification
 scripts and the locked JavaScript runtime dependency closure for `pg` and `parse5`.
+The independent entry uses explicit public configuration, and a build canary
+rejects accidental inclusion of the full public build environment.
 It copies their license files and emits notices for modules actually bundled into
 the frontend. No installation files, `.env.local`, account data, database, keys,
 Base44 source/SDK/plugin, frontend source tree, development server or npm install

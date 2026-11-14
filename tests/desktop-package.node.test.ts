@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 const run=promisify(execFile),project=resolve('.');
 const pass='fixture-desktop-recovery-only';
 test('copied desktop package runs independently, keeps data through upgrades, and recovers offline',{timeout:180000},async t=>{
- const dir=await mkdtemp(join(tmpdir(),'avera desktop preview ')),app=join(dir,'app with spaces'),home=join(dir,'private data'),away=join(dir,'unrelated working directory');
+ const dir=await mkdtemp(join(tmpdir(),'avera desktop preview ')),app=join(dir,'new parent','app with spaces'),home=join(dir,'private data'),away=join(dir,'unrelated working directory');
  await import('node:fs/promises').then(fs=>fs.mkdir(away));let child:ReturnType<typeof spawn>|undefined;
  const env={...process.env};for(const key of Object.keys(env))if(/^(AVERA_|VITE_|BASE44_|OPENAI_|PLAID_|RESEND_|GEOCODIO_|OPENWEBNINJA_|GOOGLE_)/.test(key))delete env[key];
  env.AVERA_HOME=home;env.AVERA_PORT='0';env.AVERA_GATEWAY_URL='https://offline-gateway.example';env.AVERA_GATEWAY_TOKEN='fixture-installation-grant';

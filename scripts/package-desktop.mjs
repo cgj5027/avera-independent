@@ -27,6 +27,7 @@ async function safeCopy(source,target){
  else if(info.isFile()){await cp(source,target);}
  else throw Error('Unsupported package file.');
 }
+await mkdir(dirname(output),{recursive:true});
 await mkdir(output,{recursive:false});
 try{
  for(const name of ['server','shared','dist-local'])await safeCopy(join(root,name),join(output,name));
