@@ -22,6 +22,7 @@ export function getModeOwner(){return ownerId;}
 export function getDataMode(){return read().mode;}
 export function getDemoWorkspace(){return read().workspace;}
 export function setDataMode(mode){if(DATA_MODES[mode])write({...read(),mode});}
+export function resetWorkspaceSelection(){write({mode:'manual',workspace:null});}
 export function clearDataMode(){write({...read(),mode:null});}
 export function setDemoWorkspace(workspace){if(DEMO_PROFILES[workspace?.profile])write({...read(),workspace});}
 export function clearDemoWorkspace(){write({...read(),workspace:null});}

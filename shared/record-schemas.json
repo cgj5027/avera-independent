@@ -168,6 +168,9 @@
       },
       "balance_as_of": {
         "type": "string"
+      },
+      "restored_bank_history": {
+        "type": "boolean"
       }
     }
   },
@@ -227,6 +230,9 @@
       "exclude_from_cashflow": {
         "type": "boolean",
         "default": false
+      },
+      "restored_bank_history": {
+        "type": "boolean"
       }
     }
   },

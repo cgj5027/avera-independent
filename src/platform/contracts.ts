@@ -21,7 +21,7 @@ export const PUBLIC_COLLECTIONS = [
 ] as const;
 export interface Application {
   cancelPendingRequests?(): void;
-  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean; sampleWorkspaces?: boolean };
+  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean; sampleWorkspaces?: boolean; recovery?: boolean };
   auth: {
     /** A hint to attempt verification, never proof of authorization. */
     hasSession(): boolean;
@@ -39,6 +39,14 @@ export interface Application {
     signInWithProvider(provider: string, returnTo: string): void;
     signOut(redirect?: string): void | Promise<void>;
     redirectToSignIn(returnTo: string): void;
+  };
+  recovery?: {
+    status(): Promise<Fields>;
+    backup(): Promise<Fields>;
+    export(passphrase:string): Promise<Fields>;
+    preview(input:Fields): Promise<Fields>;
+    apply(input:Fields): Promise<Fields>;
+    attachment(id:string): Promise<Fields>;
   };
   records: {
     /** Goal/Property deletion removes dependents atomically on the server. */

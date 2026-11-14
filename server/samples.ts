@@ -22,6 +22,7 @@ export async function sampleWorkspace(store:RecordStore,owner:string,input:unkno
    for(const row of selected){
     const at=new Date().toISOString(),revision=Number(row.revision)+1;
     await tx.query('UPDATE records SET deleted_at=$1,updated_at=$1,revision=$2,dedupe_key=NULL WHERE owner_id=$3 AND collection=$4 AND id=$5',[at,revision,owner,row.collection,row.id]);
+    await tx.query('DELETE FROM owner_files WHERE owner_id=$1 AND record_collection=$2 AND record_id=$3',[owner,row.collection,row.id]);
     await tx.query('INSERT INTO changes(owner_id,collection,record_id,revision,operation,changed_at) VALUES($1,$2,$3,$4,$5,$6)',[owner,row.collection,row.id,revision,'delete',at]);
    }
   }

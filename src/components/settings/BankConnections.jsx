@@ -120,6 +120,7 @@ export default function BankConnections() {
                   <Button variant="outline" size="sm" disabled={Boolean(busy)} onClick={handleSync}>
                     <RefreshCw aria-hidden="true" /> Sync now
                   </Button>
+                  {item.status === 'disconnected' && <p className="text-sm text-muted-foreground">This local link is inactive. Complete remote authorization removal with Disconnect when online.</p>}
                   {item.status === 'needs_reauth' && <Button variant="outline" disabled={Boolean(busy)} onClick={()=>handleConnect(item.item_id)}>Reconnect</Button>}
                   <Button disabled={Boolean(busy)} variant="ghost" size="icon" aria-label={`Disconnect ${item.institution_name || 'test bank'}`} onClick={() => setPendingDelete(item)}>
                     <Trash2 className="text-danger-text" aria-hidden="true" />

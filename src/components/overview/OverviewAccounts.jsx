@@ -41,6 +41,7 @@ export default function OverviewAccounts({ accounts, onDelete, dialog, onOpenDia
                       {ACCOUNT_TYPES[a.type] ?? 'Other'}
                       {a.institution ? ` · ${a.institution}` : ''}
                     </p>
+                    {a.restored_bank_history && <p className="text-sm text-muted-foreground">Restored history · disconnected</p>}
                     {a.balance_as_of && <p className="text-sm text-muted-foreground">Balance as of {formatDate(a.balance_as_of)}</p>}
                   </div>
                   <div className="flex items-center gap-2">

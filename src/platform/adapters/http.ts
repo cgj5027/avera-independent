@@ -9,7 +9,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     let response: Response;
     const controller=new AbortController();pending.add(controller);
     try { response=await fetcher('/api/v1'+path,{
-      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(path==='/services/searchJobOpportunities'?180000:path.startsWith('/services/')?120000:20000)]),
+      method,credentials:'same-origin',redirect:'error',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(path==='/services/searchJobOpportunities'?180000:path.startsWith('/services/')||path.startsWith('/recovery/')?120000:20000)]),
       headers:{'Content-Type':'application/json'},...(input===undefined ? {} : {body:JSON.stringify(input)}),
     }); } catch { throw Object.assign(new Error('Local service is unavailable.'),{status:0,code:'SERVICE_UNAVAILABLE'}); }
     finally { pending.delete(controller); }
@@ -26,7 +26,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     try { const u=new URL(raw,window.location.origin); return u.origin===window.location.origin && !u.pathname.startsWith('//') && !u.pathname.includes('\\') ? u.pathname+u.search : '/'; }
     catch { return '/'; }
   }
-  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true,sampleWorkspaces:true};
+  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true,sampleWorkspaces:true,recovery:false};
   const collections=new Map<string,Collection>();
   return {
     capabilities,
@@ -43,6 +43,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
       signOut:async redirect=>{ await request('/auth/logout','POST',{}); if(redirect) navigate(returnPath(redirect)); },
       redirectToSignIn:returnTo=>navigate('/login?returnTo='+encodeURIComponent(returnPath(returnTo))),
     },
+    recovery:{status:()=>request('/recovery/status'),backup:()=>request('/recovery/backup','POST',{}),export:passphrase=>request('/recovery/export','POST',{passphrase}),preview:input=>request('/recovery/preview','POST',input),apply:input=>request('/recovery/apply','POST',input),attachment:id=>request('/recovery/attachment','POST',{id})},
     records:{cascadesDependents:true,collection(name) {
       if (!(PUBLIC_COLLECTIONS as readonly string[]).includes(name)) throw new Error('Unknown record collection.');
       if (!collections.has(name)) {
@@ -58,7 +59,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     }},
     services:{invoke:async(name,payload={})=>({data:await request('/services/'+encodeURIComponent(name),'POST',payload)})},
     files:{parseResume:async input=>({data:await request('/services/parseResume','POST',input)})},
-    settings:{getPublic:async()=>{const data=await request('/settings/public');const auth=data.public_settings?.auth;capabilities.oauth=auth?.oauth===true;capabilities.passwordReset=auth?.password_reset===true;capabilities.emailVerification=auth?.email_verification===true;return data;}},
+    settings:{getPublic:async()=>{const data=await request('/settings/public');capabilities.recovery=data.public_settings?.recovery===true;const auth=data.public_settings?.auth;capabilities.oauth=auth?.oauth===true;capabilities.passwordReset=auth?.password_reset===true;capabilities.emailVerification=auth?.email_verification===true;return data;}},
     consent:{getInfo:async()=>new Response('{}',{status:501}),respond:async()=>new Response('{}',{status:501})},
   };
 }

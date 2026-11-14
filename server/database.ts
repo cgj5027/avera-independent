@@ -1,4 +1,4 @@
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync, backup } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
 import pg from 'pg';
@@ -9,6 +9,7 @@ export interface Transaction { query(sql: string, params?: unknown[]): Promise<R
 export interface Database {
   dialect: 'sqlite' | 'postgres';
   transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  snapshot?(destination: string): Promise<void>;
   close(): Promise<void>;
 }
 export function sqliteDatabase(path: string): Database {
@@ -33,6 +34,10 @@ export function sqliteDatabase(path: string): Database {
       queue = result.catch(() => {});
       return result;
     },
+    snapshot(destination) {
+      const result=queue.then(async()=>{await backup(db,destination);});
+      queue=result.catch(()=>{});return result;
+    },
     async close() { await queue; db.close(); },
   };
 }
@@ -56,7 +61,7 @@ export function openDatabase(config: ReturnType<typeof readServerConfig>): Datab
   return config.storage.driver === 'sqlite'
     ? sqliteDatabase(config.storage.path!) : postgresDatabase(config.storage.connectionString!);
 }
-export async function migrate(db: Database, targetVersion: 1 | 2 | 3 = 3) {
+export async function migrate(db: Database, targetVersion: 1 | 2 | 3 | 4 = 4) {
   await db.transaction(async tx => {
     if (db.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(718303)');
     await tx.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
@@ -100,6 +105,19 @@ export async function migrate(db: Database, targetVersion: 1 | 2 | 3 = 3) {
     if(version < 3 && targetVersion >= 3){
       await tx.query('CREATE TABLE sample_workspaces(owner_id TEXT NOT NULL REFERENCES users(id), profile TEXT NOT NULL, initialized_at TEXT NOT NULL, PRIMARY KEY(owner_id,profile))');
       await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(3,$1)',[new Date().toISOString()]);
+    }
+    if(version < 4 && targetVersion >= 4){
+      await tx.query(`CREATE TABLE owner_files(owner_id TEXT NOT NULL REFERENCES users(id), id TEXT NOT NULL,
+        name TEXT NOT NULL, mime_type TEXT NOT NULL, content_base64 TEXT NOT NULL, sha256 TEXT NOT NULL,
+        record_collection TEXT, record_id TEXT, PRIMARY KEY(owner_id,id))`);
+      await tx.query(`CREATE TABLE recovery_backups(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL REFERENCES users(id),
+        kind TEXT NOT NULL,created_at TEXT NOT NULL,bytes BIGINT NOT NULL)`);
+      await tx.query(`CREATE TABLE recovery_status(owner_id TEXT PRIMARY KEY REFERENCES users(id),
+        last_success TEXT,last_attempt TEXT,last_error TEXT,copy_error TEXT)`);
+      await tx.query('CREATE TABLE recovery_bank_rows(owner_id TEXT NOT NULL REFERENCES users(id), collection TEXT NOT NULL,id TEXT NOT NULL,PRIMARY KEY(owner_id,collection,id))');
+      await tx.query(`CREATE TABLE recovery_imports(owner_id TEXT NOT NULL REFERENCES users(id),fingerprint TEXT NOT NULL,
+        applied_at TEXT NOT NULL,PRIMARY KEY(owner_id,fingerprint))`);
+      await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(4,$1)',[new Date().toISOString()]);
     }
   });
 }

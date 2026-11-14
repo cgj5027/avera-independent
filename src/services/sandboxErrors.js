@@ -11,6 +11,7 @@ export function sandboxErrorMessage(error) {
     }
     return 'Too many connection attempts. Wait a minute, then try again.';
   }
+  if (code === 'RECONNECT_REVIEW_REQUIRED') return 'Review restored bank history in Settings → Backups & recovery before reconnecting, to avoid duplicate balances or transactions.';
   if (code === 'SANDBOX_NOT_CONFIGURED') return 'Test-bank connections are not configured yet. Please contact the app team.';
   if (code === 'SANDBOX_DATA_PENDING') return 'The test bank is still preparing transactions. Please try again shortly.';
   return 'The test bank could not connect. Please try again.';

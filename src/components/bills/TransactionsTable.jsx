@@ -402,6 +402,7 @@ export default function TransactionsTable({
                     {show.source && (
                       <TableCell>
                         <SourceChip source={t.source || (synced ? 'Plaid Sandbox' : 'Manual')} />
+                        {t.restored_bank_history&&<span className="mt-1 block text-xs text-muted-foreground">Restored history · disconnected</span>}
                       </TableCell>
                     )}
                     {show.amount && (

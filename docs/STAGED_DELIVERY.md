@@ -278,8 +278,7 @@ with existing large-bundle / compatibility-only Base44 configuration warnings.
 Status: implementation and automated acceptance complete, subject to final CI.
 Manual assistive-technology/device/zoom acceptance and user review of the new
 navigation remain separate release gates. The historical SDK advanced seeding
-path is not certified for independent atomic/guest behavior. Stage 6 backup and
-migration work has not started; no production deployment was performed.
+path is not certified for independent atomic/guest behavior. Stage 6 implementation is recorded below; no production deployment was performed.
 
 ### Manual transaction save correction
 
@@ -299,3 +298,31 @@ passed, with no reported axe violations, external browser requests or page
 exceptions. Lint, all three type checks and both builds passed. Existing build
 warnings remain. No database/provider change, migration or production deployment.
 Previously submitted entries that were never written must be entered again.
+
+## Stage 6: encrypted backups and guided recovery
+
+Implementation and operator/owner steps are in [Stage 6 recovery](STAGE_6_RECOVERY.md).
+Migration 4 adds recovery metadata and owner-scoped retained attachments. Daily/weekly
+encrypted archives, portable passphrase exports, optional off-device copying and
+verified pre-upgrade SQLite snapshots are independent of Base44. Guided restore and
+prepared authorized-export import reconcile counts, exact saved money totals, file
+hashes and relationships; verified safety copies precede transactional replacement.
+Sessions end after recovery. Bank history stays disconnected until explicitly
+reviewed/removed before fresh imports. Sync remains disabled.
+
+No production records, credentials or deployment are changed. Real source export
+acceptance, separate-device recovery, provider backup/PITR configuration and
+cross-OS/manual accessibility checks remain explicit release gates.
+
+Local checkpoint (Linux/Node 24): 454 regression tests passed; 95 native checks
+passed on disposable SQLite/PostgreSQL 16 with no skips. Final recovery-only
+verification passed 24 checks on both engines, including legacy bank provenance,
+read-only history labels and installation private-file extraction/traversal
+rejection. The real recovery browser suite passed 33 checks across four widths
+and both themes; the existing independent browser suite passed 43 checks, Stage 5 sample/navigation
+checks passed 49 cases, and responsive compatibility fixtures passed 252 checks, with no reported axe
+violations. Independent browser suites reported no external requests/page errors.
+Lint, all three type checks and both builds passed. Dependency audits reported
+zero advisories; redacted history and staged-change secret scans found no leaks.
+Existing large-bundle and compatibility-only Base44 configuration warnings remain.
+CI and the owner acceptance steps above are separate from this local checkpoint.

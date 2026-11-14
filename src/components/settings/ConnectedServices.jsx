@@ -21,7 +21,7 @@ export default function ConnectedServices() {
     finally{setSaving(false);}
   }
   return <SettingSection title="Connected services and AI" description="Your financial records stay in the database selected for this installation.">
-    {error&&<p role="alert" className="text-danger mb-3">{error}</p>}
+    {error&&<p role="alert" className="text-danger-text mb-3">{error}</p>}
     {!status&&!error&&<p role="status">Checking services…</p>}
     {status&&<div className="space-y-3">
       <p className="text-base">Connection: {status.mode==='gateway'?'Avera gateway':'Direct providers'}. AI: {status.ai?'configured':'unavailable'}. Plaid Sandbox: {status.plaid?'configured':'unavailable'}.</p>

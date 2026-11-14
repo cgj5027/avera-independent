@@ -147,7 +147,7 @@ for (const dialect of ['sqlite','postgres'] as const) {
       const history=await runtime.store.db.transaction(tx=>tx.query('SELECT * FROM changes WHERE owner_id=$1 AND record_id=$2 ORDER BY seq',[owner,id]));
       assert.deepEqual(history.map(r=>r.operation),['create','update','delete']);
       const count=await runtime.store.db.transaction(tx=>tx.query('SELECT COUNT(*) AS n FROM schema_migrations'));
-      assert.equal(Number(count[0].n),3);
+      assert.equal(Number(count[0].n),4);
     });
   });
 }
