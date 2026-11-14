@@ -31,14 +31,15 @@ export class RecordStore {
     const parent = await this.raw(tx,owner,name === 'MortgageRecord' ? 'Property':'Goal',fields[name === 'MortgageRecord' ? 'property_id':'goal_id'],true);
     if ((body(parent).demo_profile ?? '') !== (fields.demo_profile ?? '')) invalid('Reference is outside this dataset.');
   }
-  async insert(tx: Transaction, owner: string, name: string, input: unknown, trusted = false) {
+  async insert(tx: Transaction, owner: string, name: string, input: unknown, trusted = false, identity?:{id:string;revision:number;created_at:string}) {
     const fields = validateRecord(name,input,undefined,trusted);
     await this.reference(tx,owner,name,fields);
-    const id=randomUUID(), at=new Date().toISOString();
+    const id=identity?.id??randomUUID(), at=new Date().toISOString(),revision=identity?.revision??1;
     const rows=await tx.query(`INSERT INTO records(collection,id,owner_id,body,created_at,updated_at,dedupe_key)
-      VALUES($1,$2,$3,$4,$5,$5,$6) RETURNING *`, [name,id,owner,JSON.stringify(fields),at,dedupe(name,fields)]);
-    await this.change(tx,owner,name,id,1,'create',at);
-    return dto(rows[0]);
+      VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`, [name,id,owner,JSON.stringify(fields),identity?.created_at??at,at,dedupe(name,fields)]);
+    if(revision!==1)await tx.query('UPDATE records SET revision=$1 WHERE owner_id=$2 AND collection=$3 AND id=$4',[revision,owner,name,id]);
+    await this.change(tx,owner,name,id,revision,'create',at);
+    return {...dto(rows[0]),revision};
   }
   create(owner: string, name: string, input: unknown) { return this.db.transaction(tx=>this.insert(tx,owner,name,input)); }
   createMany(owner: string, name: string, input: unknown) {
@@ -85,6 +86,7 @@ export class RecordStore {
         const at=new Date().toISOString(), revision=Number(row.revision)+1;
         await tx.query('UPDATE records SET deleted_at=$1,updated_at=$1,revision=$2,dedupe_key=NULL WHERE owner_id=$3 AND collection=$4 AND id=$5',[at,revision,owner,row.collection,row.id]);
         await this.change(tx,owner,row.collection,row.id,revision,'delete',at);
+        await tx.query('DELETE FROM owner_files WHERE owner_id=$1 AND record_collection=$2 AND record_id=$3',[owner,row.collection,row.id]);
       }
       return { deleted:true };
     });

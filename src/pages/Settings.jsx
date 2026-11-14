@@ -1,3 +1,4 @@
+import BackupRecovery from '@/components/settings/BackupRecovery';
 import GuestConnectedState from '@/components/states/GuestConnectedState';
 import ConnectedServices from '@/components/settings/ConnectedServices';
 import AccountNameForm from '@/components/settings/AccountNameForm';
@@ -36,6 +37,8 @@ export default function Settings() {
             </Button>
           )}
         </SettingSection>
+
+        {!user?.is_sample&&<BackupRecovery/>}
 
         <SettingSection title="Appearance" description="A warm, organic dark mode is available.">
           <ThemeSelect />

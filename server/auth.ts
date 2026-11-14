@@ -69,7 +69,7 @@ export class AuthService {
       // Remove expired guest-only data. Authenticated owners are never selected.
       const stale=await tx.query("SELECT id FROM users WHERE id LIKE 'sample:%' AND created_at<$1 AND NOT EXISTS (SELECT 1 FROM sessions WHERE user_id=users.id AND expires_at>$2)",[new Date(Date.now()-duration).toISOString(),Date.now()]);
       for(const row of stale){
-        for(const table of ['records','changes','feedback','sample_workspaces','ai_consent'])await tx.query(`DELETE FROM ${table} WHERE owner_id=$1`,[row.id]);
+        for(const table of ['records','changes','feedback','sample_workspaces','ai_consent','owner_files','recovery_backups','recovery_status','recovery_imports','recovery_bank_rows'])await tx.query(`DELETE FROM ${table} WHERE owner_id=$1`,[row.id]);
         await tx.query('DELETE FROM sessions WHERE user_id=$1',[row.id]);
         await tx.query('DELETE FROM users WHERE id=$1',[row.id]);
       }

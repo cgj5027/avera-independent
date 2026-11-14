@@ -8,6 +8,9 @@ import { integrationRuntime } from './integrations/runtime.ts';
 import { googleAuth } from './oauth.ts';
 import { AuthService } from './auth.ts';
 import { ApiError, invalid } from './errors.ts';
+import { RecoveryService,beforeUpgrade } from './recovery/service.ts';
+import type { RecoveryOptions } from './recovery/service.ts';
+import { claimQuota } from './integrations/quota.ts';
 import { sampleWorkspace } from './samples.ts';
 import { object } from './validation.ts';
 
@@ -29,13 +32,16 @@ function send(res: ServerResponse, status: number, value: unknown) {
 function cookie(req: IncomingMessage) {
   return req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('avera_session='))?.slice('avera_session='.length);
 }
-export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false,host="127.0.0.1",healthHost }: {
-  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;host?:'127.0.0.1'|'0.0.0.0';healthHost?:string;
+export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false,host="127.0.0.1",healthHost,recoveryOptions }: {
+  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;host?:'127.0.0.1'|'0.0.0.0';healthHost?:string;recoveryOptions?:RecoveryOptions;
 }) {
   if(host!=='127.0.0.1'&&(!gatewayOnly||host!=='0.0.0.0'||!publicOrigin))throw new Error('Public binding requires an HTTPS gateway configuration.');
+  if(recoveryOptions&&!gatewayOnly)await beforeUpgrade(db,recoveryOptions);
   await migrate(db);
   const store=new RecordStore(db);
   const integrations=env?integrationRuntime(db,store,env,fetcher):undefined;
+  const recovery=recoveryOptions&&!gatewayOnly?await RecoveryService.create(store,recoveryOptions):undefined;
+  if(recoveryOptions?.schedule!==false)recovery?.start();
   const auth=new AuthService(db,integrations);
   const google=integrations?googleAuth(db,auth,integrations.vault.box,env!,fetcher):undefined;
   let origin='';
@@ -61,7 +67,7 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         if (!['GET','HEAD'].includes(method) && req.headers.origin!==requestOrigin) throw new ApiError(403,'INVALID_ORIGIN','Request origin is not allowed.');
         const path=url.pathname;
         if (method==='GET' && path==='/api/v1/health') return send(res,200,{ok:true});
-        if (method==='GET' && path==='/api/v1/settings/public') return send(res,200,{id:'avera-independent',public_settings:{auth:{email_verification:integrations?.authEmail??false,oauth:google?.enabled??false,password_reset:integrations?.authEmail??false}}});
+        if (method==='GET' && path==='/api/v1/settings/public') return send(res,200,{id:'avera-independent',public_settings:{recovery:!!recovery,auth:{email_verification:integrations?.authEmail??false,oauth:google?.enabled??false,password_reset:integrations?.authEmail??false}}});
         if(method==='POST'&&path==='/api/v1/auth/sample'){
           await jsonBody(req);auth.limit(req.socket.remoteAddress??'local');
           let current;try{current=await auth.current(cookie(req));}catch{/* No personal session. */}
@@ -108,6 +114,19 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         const user=await auth.current(cookie(req));
         if (method==='GET' && path==='/api/v1/auth/me') return send(res,200,user);
         if(user.is_sample&&!(path.startsWith('/api/v1/records/')||['/api/v1/services/sampleWorkspace','/api/v1/services/projectAnnualIncome','/api/v1/services/logGoalContribution'].includes(path)))throw new ApiError(403,'SAMPLE_ONLY','Create an account to use connected services.');
+        if(path.startsWith('/api/v1/recovery/')&&recovery){
+          if(method==='GET'&&path==='/api/v1/recovery/status')return send(res,200,await recovery.status(user.id));
+          if(method==='POST'){
+            await claimQuota(db,user.id,'recovery-requests',12,60000);
+            const data=await jsonBody(req,46*1024*1024),action=path.slice('/api/v1/recovery/'.length);
+            if(action==='backup')return send(res,200,await recovery.createBackup(user.id));
+            if(action==='export')return send(res,200,await recovery.export(user.id,data.passphrase));
+            if(action==='preview')return send(res,200,await recovery.preview(user.id,data));
+            if(action==='apply')return send(res,200,await recovery.apply(user.id,data));
+            if(action==='attachment')return send(res,200,await recovery.attachment(user.id,data.id));
+          }
+          throw new ApiError(404,'NOT_FOUND','Recovery endpoint not found.');
+        }
         if (method==='PATCH' && path==='/api/v1/auth/me') return send(res,200,await auth.update(user.id,await jsonBody(req)));
         const match=path.match(/^\/api\/v1\/records\/([A-Za-z]+)(?:\/([^/]+))?$/);
         if (match) {
@@ -127,6 +146,10 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         }
         if (method==='POST' && path.startsWith('/api/v1/services/')) {
           const name=path.slice('/api/v1/services/'.length), data=await jsonBody(req,name==='parseResume'?8*1024*1024:1024*1024);
+          if(['plaidCreateLinkToken','plaidExchangeToken','plaidSync','demoSandboxConnect'].includes(name)){
+            const restored=await db.transaction(tx=>tx.query('SELECT h.id FROM recovery_bank_rows h JOIN records r ON r.owner_id=h.owner_id AND r.collection=h.collection AND r.id=h.id WHERE h.owner_id=$1 AND r.deleted_at IS NULL LIMIT 1',[user.id]));
+            if(restored.length)throw new ApiError(409,'RECONNECT_REVIEW_REQUIRED','Review restored bank history in Settings → Backups & recovery before reconnecting, to avoid duplicate balances or transactions.');
+          }
           if(name==='sampleWorkspace')return send(res,200,await sampleWorkspace(store,user.id,data));
           if (name==='logGoalContribution') return send(res,200,await store.contribution(user.id,data));
           if (name==='projectAnnualIncome') {
@@ -172,8 +195,9 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
   const address=server.address();
   if (!address || typeof address==='string') throw new Error('Server did not bind.');
   origin=`http://127.0.0.1:${address.port}`;
-  return {url:origin,store,auth,async close() {
+  return {url:origin,store,auth,recovery,async close() {
     await new Promise<void>((resolve,reject)=>server.close(error=>error ? reject(error):resolve()));
+    await recovery?.close();
     await integrations?.close();
     await db.close();
   }};

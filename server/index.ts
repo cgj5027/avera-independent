@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readServerConfig } from './config.ts';
 import { openDatabase } from './database.ts';
+import { recoveryOptions } from './recovery/service.ts';
 import { startLocalServer } from './http.ts';
 
 process.umask(0o077);
@@ -15,6 +16,6 @@ if (publicOrigin) {
 }
 const dist=resolve('dist-local');
 if (!existsSync(resolve(dist,'index.html'))) throw new Error('Run npm run build:local before starting the local application.');
-const runtime=await startLocalServer({db:openDatabase(config),port,dist,publicOrigin,env:process.env});
+const runtime=await startLocalServer({db:openDatabase(config),port,dist,publicOrigin,env:process.env,recoveryOptions:recoveryOptions(process.env,config.storage.driver==='sqlite'?config.storage.path:undefined)});
 console.log(`Avera is available at ${runtime.url}`);
 for (const signal of ['SIGINT','SIGTERM']) process.once(signal,()=>{ void runtime.close().then(()=>process.exit(0)); });

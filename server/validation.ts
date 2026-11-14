@@ -44,6 +44,7 @@ export function validateRecord(name: string, input: unknown, previous?: Record<s
   if (!profiles.includes(result.demo_profile ?? '')) invalid('Invalid demo profile.');
   if (previous && (previous.demo_profile ?? '') !== (result.demo_profile ?? '')) invalid('A record cannot change datasets.');
   if (!trusted) {
+    if(Object.hasOwn(fields,'restored_bank_history')&&fields.restored_bank_history!==previous?.restored_bank_history)invalid('Restored bank-history labels are managed by recovery.');
     if (fields.source === 'Plaid Sandbox' && previous?.source !== 'Plaid Sandbox') invalid('Imported bank fields are managed by a service.');
     if (['plaid_item_id','plaid_account_id','plaid_transaction_id','import_key'].some(key => fields[key] && fields[key] !== previous?.[key])) invalid('Imported bank fields are managed by a service.');
     if (previous?.plaid_item_id) {
