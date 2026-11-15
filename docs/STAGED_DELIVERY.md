@@ -408,5 +408,6 @@ No production records/configuration/deployment or subscriptions were changed.
 External clients need explicit reconnection; cloud MCP requires a separate HTTPS
 financial application server and is not multi-device sync. Final updated-device/
 external-client checks, original-data reconciliation and actual cutover/cancellation
-remain operator steps. The Stage 7B PR is based on the still-open Stage 7A branch;
-merge the packaging PR first, then this candidate, after their checks pass.
+remain operator steps. The final Stage 7 PR includes the earlier desktop-packaging commits and
+supersedes that separate preview PR; review/merge the combined final candidate
+only after its checks pass.
