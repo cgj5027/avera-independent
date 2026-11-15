@@ -8,6 +8,13 @@ history and code of `cgj5027/avera`, branch `work`, through
 
 ## Accepted decisions
 
+- Make the full online website at `avera.run` primary, with its own hosted
+  PostgreSQL database, while preserving cloneable/local SQLite operation. Keep the
+  existing provider gateway separate and give the hosted website a distinct
+  installation grant. Desktop/online records remain separate in V1; use explicit
+  encrypted export/import for transfer. See [hosted setup](HOSTED_APP_SETUP.md)
+  for the Render Blueprint, validation, Cloudflare cutover and recovery steps.
+
 - Retain React and Tailwind; use TypeScript/Node.js for new backend work.
 - Build an operating-system-independent browser interface and portable backend.
   Validate local packages/launchers on Windows, macOS and Linux; define supported

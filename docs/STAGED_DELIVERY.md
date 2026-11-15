@@ -411,3 +411,42 @@ external-client checks, original-data reconciliation and actual cutover/cancella
 remain operator steps. The final Stage 7 PR includes the earlier desktop-packaging commits and
 supersedes that separate preview PR; review/merge the combined final candidate
 only after its checks pass.
+
+## Online application preparation
+
+The owner selected a full online website at `avera.run` as primary, while keeping
+the same source cloneable for local SQLite operation. Added an explicit hosted
+entrypoint with PostgreSQL, canonical HTTPS, Render's port, a public listener,
+private persistent storage and a distinct gateway installation grant. Local and
+desktop entrypoints remain loopback-only. Hosted cookies remain Secure/HttpOnly;
+the Render hostname exception admits only its exact GET health probe after the
+custom domain becomes canonical. Forwarded headers cannot change recovery links.
+
+The Render Blueprint declares a separate web service, financial database and
+private disk; it does not redefine the existing gateway. A credential helper
+writes a new website vault key and gateway grant outside the repository, preserves
+existing grants when supplied and never prints secrets. The
+[operator guide](HOSTED_APP_SETUP.md) covers paid resource review, staging checks,
+explicit encrypted data transfer, Cloudflare DNS, rollback and off-service recovery.
+Online accounts work across browsers; desktop/cloud synchronization stays disabled.
+
+Local evidence: 454 unit tests and 115 native SQLite/PostgreSQL checks passed with
+zero PostgreSQL skips. The TLS browser check used real PostgreSQL behind a temporary
+HTTPS reverse proxy and synthetic mail: email verification, Secure cookies,
+persisted finance records, four responsive/theme axe checks, canonical reset links
+and cross-site write rejection passed. An actual hosted process also passed its
+platform-port/HTTPS-origin/key-creation/health/graceful-shutdown smoke check.
+Lint, all three type checks, both independent builds, the platform independence
+check and both dependency audits passed (zero known advisories). The existing
+large-bundle warning remains. Blueprint/workflow YAML parses; Render's own account
+validation and live provider checks remain deployment steps.
+
+Regression browser suites passed 43 finance/process-restart, 49 sample/navigation,
+41 recovery and 24 MCP consent/revocation checks with no reported browser errors,
+external requests or axe violations. Copied desktop package integrity, offline,
+upgrade and recovery checks passed. Staged content and available Git history
+passed redacted secret scans. Cross-OS GitHub CI is a separate release gate.
+
+No production records, keys, gateway configuration, hosting, DNS or subscriptions
+were changed. The operator must apply the reviewed Blueprint, append the hosted
+grant to the live gateway, validate the staging website and only then switch DNS.

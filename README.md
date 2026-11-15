@@ -44,6 +44,15 @@ npm run package:desktop
 Use a successful trusted GitHub Actions run's archive and checksum. Do not deploy
 this repository into or relink it to the original production platform application.
 
+## Full online website
+
+[Render setup and domain cutover](docs/HOSTED_APP_SETUP.md) deploys the full app
+with its own PostgreSQL database and persistent private storage using `render.yaml`.
+`npm run start:hosted` is an explicit public-HTTPS entrypoint; desktop startup
+continues to bind only to loopback. The existing integration gateway stays separate.
+An online account works across browsers, while local installations retain their
+own records. Automatic desktop/online synchronization remains deferred to V2.
+
 ## Backup, sharing and release acceptance
 
 [Encrypted backup/migration/recovery](docs/STAGE_6_RECOVERY.md) covers portable
