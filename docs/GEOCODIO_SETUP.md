@@ -1,7 +1,6 @@
 # Geocodio location setup
 
-Geocodio replaces Photon in the independent application. The legacy Base44
-compatibility backend is unchanged. OpenAI discovers jobs; Geocodio resolves
+OpenAI discovers jobs; Geocodio resolves
 locations for approximate straight-line distance filtering. It does not determine
 whether a posting is still active or calculate driving distance.
 
@@ -15,13 +14,11 @@ whether a posting is still active or calculate driving distance.
    `GEOCODIO_API_KEY` with the key as its secret value. Save it securely; do not
    paste keys into chat, GitHub or frontend configuration. Gateway-mode desktops
    do not need this key. Advanced direct installations set it on their own server.
-3. Merge/deploy the updated gateway code after its checks pass. This release
-   also includes the posting-availability changes from PR #12 if not yet merged. Preserve the
+3. Deploy a reviewed gateway commit after its checks pass. Preserve the
    existing database, vault key, grants, OpenAI, Plaid and Resend configuration.
-4. Update the desktop installation to the same release, run
-   `npm ci --ignore-scripts`, `npm run build:local`, and restart
-   `npm run start:local`. Both sides must be updated: older gateways do not allow
-   the Geocodio endpoint, and the updated gateway rejects Photon requests.
+4. Restart the gateway after saving the key. Local installations in gateway mode
+   use this service without a separate geocoding key. Direct installations need
+   the key on their own backend. For source upgrades, follow [local setup](LOCAL_SETUP.md).
 5. Test a specific city/state or postal code and a known nearby/out-of-radius job
    location. Try an ambiguous city and verify that it asks for a more specific
    location. Confirm source-check timestamps still appear on accepted postings.
@@ -35,9 +32,6 @@ credentials and exhausted allowance never broaden the user's distance limit.
 If a destination fails but other nearby matches succeed, results retain the
 existing partial-location disclosure. An unresolved origin stops the search.
 
-This change requires no database migration. To roll back, restore matching old
-versions of both gateway and desktop; Photon reachability may still fail. Other
-finance workflows do not require Geocodio.
+Other finance workflows do not require Geocodio.
 
-Live Geocodio acceptance is pending an operator-supplied key and a test from the
-hosted gateway. Synthetic tests do not establish provider availability.
+Validate location lookup on each deployment with a configured key; fixtures do not verify live provider availability or account limits.

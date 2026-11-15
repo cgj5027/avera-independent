@@ -5,9 +5,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { readFileSync, readdirSync } from 'node:fs';
 const sdk = vi.hoisted(() => ({ auth: { me: vi.fn(), logout: vi.fn(), loginViaEmailPassword: vi.fn(), register: vi.fn(), verifyOtp: vi.fn(), setToken: vi.fn(), resendOtp: vi.fn(), loginWithProvider: vi.fn() }, app: { getPublicSettings: vi.fn() }, entities: {}, functions:{invoke:vi.fn()} }));
-vi.mock('./fixtures/client', () => ({ base44: sdk }));
-vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>sdk}));
-import contributionHandler from './fixtures/legacy-platform/functions/logGoalContribution/entry.ts';
+vi.mock('./fixtures/client', () => ({ fixtureClient: sdk }));
+vi.mock('test:service-client',()=>({createClientFromRequest:()=>sdk}));
+import contributionHandler from './fixtures/contracts/functions/logGoalContribution/entry.ts';
 vi.mock('./fixtures/params', () => ({ appParams: { token: 'test-token' } }));
 import { appParams } from './fixtures/params';
 import { AuthProvider, useAuth } from '../src/lib/AuthContext';
@@ -79,7 +79,7 @@ describe('owner-scoped persistence with mocked SDK (not deployed RLS)', () => {
     expect(rows.HouseholdProfile[0].household_name).toBe('B');
   });
   it('every financial schema requires owner-only RLS including admins', () => {
-    const dir=process.cwd()+'/tests/fixtures/legacy-platform/entities/';
+    const dir=process.cwd()+'/tests/fixtures/contracts/entities/';
     for(const file of readdirSync(dir).filter(x=>!['User.jsonc','PlaidCredential.jsonc','ServiceUsage.jsonc'].includes(x))) {
       const schema=JSON.parse(readFileSync(dir+file,'utf8'));
       // Create may anchor ownership on either accepted form; both restrict to the signed-in owner.

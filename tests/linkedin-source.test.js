@@ -1,9 +1,9 @@
-vi.mock('./fixtures/legacy-platform/shared/jobDistance.ts', async importOriginal => ({...await importOriginal(), createJobArea: () => ({validate:async()=>null,filter:async rows=>rows})}));
+vi.mock('./fixtures/contracts/shared/jobDistance.ts', async importOriginal => ({...await importOriginal(), createJobArea: () => ({validate:async()=>null,filter:async rows=>rows})}));
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 const runtime = vi.hoisted(() => ({ key: undefined }));
-vi.mock('base44:runtime', () => ({ secrets: { get: name => name === 'OPENWEBNINJA_API_KEY' ? runtime.key : undefined } }));
-import { searchLinkedIn, linkedInListing } from './fixtures/legacy-platform/shared/linkedInSource.ts';
-import { searchListings } from './fixtures/legacy-platform/shared/opportunitySource.ts';
+vi.mock('test:service-runtime', () => ({ secrets: { get: name => name === 'OPENWEBNINJA_API_KEY' ? runtime.key : undefined } }));
+import { searchLinkedIn, linkedInListing } from './fixtures/contracts/shared/linkedInSource.ts';
+import { searchListings } from './fixtures/contracts/shared/opportunitySource.ts';
 const profile = { skills: 'Bookkeeping, payroll', preferred_roles: 'Bookkeeper', job_type: 'part_time', work_mode: 'remote', location: 'USA', experience_level: 'entry_level' };
 const job = (id = '1', extra = {}) => ({ job_id:id, job_title:'Bookkeeper', employer_name:'Fixture employer', job_apply_link:`https://www.linkedin.com/jobs/view/${id}/`, job_description:'Remote part-time bookkeeping and payroll for our team.', job_employment_type:'PARTTIME', job_city:'Remote', job_country:'USA', job_is_remote:true, job_posted_at_datetime_utc:'2026-10-20T12:00:00Z', job_min_salary:20, job_max_salary:25, job_salary_currency:'USD', job_salary_period:'HOUR', ...extra });
 const web = { title:'Bookkeeper web result', company:'Web fixture', url:'https://jobs.org/post/1', employment_type:'part-time', work_mode:'remote', description_excerpt:'Bookkeeping and payroll work', location:'USA' };

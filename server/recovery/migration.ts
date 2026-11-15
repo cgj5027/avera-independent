@@ -1,7 +1,7 @@
 import { recordSchemas,object } from '../validation.ts';
 import { validateSnapshot,RECOVERY_SCHEMA } from './records.ts';
 import { invalid } from '../errors.ts';
-/** Convert an owner-authorized JSON export. Never fetch credentials or data from Base44. */
+/** Convert an owner-authorized JSON export. Never fetch external credentials or records. */
 export function prepareMigration(value:unknown,sourceOwner:string){
  const source=object(value);if(!sourceOwner||sourceOwner.length>200)invalid('Specify the owner whose authorized export is being migrated.');
  const records:any[]=[];const at=new Date().toISOString();

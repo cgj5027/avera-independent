@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { readClientConfig } from '../src/platform/config';
 import { readServerConfig } from '../server/config';
 import { createApplication } from '../src/platform/createApplication';
-import { createBase44Adapter } from './fixtures/legacy-adapter';
+import { createFixtureApplication } from './fixtures/application-adapter';
 import type { Application } from '../src/platform/contracts';
 
 function fixture(token: string | null = 'fixture-token') {
@@ -29,7 +29,7 @@ function fixture(token: string | null = 'fixture-token') {
   };
   const params = { appId: 'fixture-app', token };
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{}'));
-  const application = createBase44Adapter({ client, params, fetcher });
+  const application = createFixtureApplication({ client, params, fetcher });
   return { application, client, entity, params, fetcher };
 }
 
@@ -37,19 +37,19 @@ describe('explicit backend selection', () => {
   it('uses the independent HTTP default and selects only the requested factory', () => {
     const legacy = fixture().application;
     const alternative = { name: 'independent implementation' } as unknown as Application;
-    const base44 = vi.fn(() => legacy);
+    const fixtureClient = vi.fn(() => legacy);
     const http = vi.fn(() => alternative);
     expect(readClientConfig()).toEqual({ backend: 'http' });
-    expect(createApplication(readClientConfig({ VITE_AVERA_BACKEND: 'http' }), { base44, http })).toBe(alternative);
-    expect(base44).not.toHaveBeenCalled();
+    expect(createApplication(readClientConfig({ VITE_AVERA_BACKEND: 'http' }), { fixtureClient, http })).toBe(alternative);
+    expect(fixtureClient).not.toHaveBeenCalled();
     expect(http).toHaveBeenCalledOnce();
   });
   it('never falls back to the cloud if a selected implementation is absent or fails', () => {
-    const base44 = vi.fn(() => fixture().application);
-    expect(() => createApplication({ backend: 'http' }, { base44 })).toThrow('not installed');
+    const fixtureClient = vi.fn(() => fixture().application);
+    expect(() => createApplication({ backend: 'http' }, { fixtureClient })).toThrow('not installed');
     const failure = new Error('Local service unavailable');
-    expect(() => createApplication({ backend: 'http' }, { base44, http: () => { throw failure; } })).toThrow(failure);
-    expect(base44).not.toHaveBeenCalled();
+    expect(() => createApplication({ backend: 'http' }, { fixtureClient, http: () => { throw failure; } })).toThrow(failure);
+    expect(fixtureClient).not.toHaveBeenCalled();
     expect(() => readClientConfig({ VITE_AVERA_BACKEND: 'localStorage' })).toThrow('VITE_AVERA_BACKEND');
   });
 });

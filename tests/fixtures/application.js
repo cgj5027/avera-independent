@@ -1,5 +1,5 @@
-// Historical UI fixtures keep their in-memory contract while production uses HTTP only.
-import { createBase44Adapter } from './legacy-adapter';
-import { base44 } from './client';
+// UI fixtures inject an in-memory application; production uses HTTP only.
+import { createFixtureApplication } from './application-adapter';
+import { fixtureClient } from './client';
 import { appParams } from './params';
-export const application=createBase44Adapter({client:base44,params:appParams});
+export const application=createFixtureApplication({client:fixtureClient,params:appParams});

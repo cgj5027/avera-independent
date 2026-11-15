@@ -7,7 +7,7 @@ function matches(row,query) {return Object.entries(query).every(([key,value])=>k
  for(const theme of ['light','dark'])for(const width of [320,390,768,1440]) {
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const rows={IncomeSource:[{id:'hidden',name:'Hidden demo income',amount:99999,created_by_id:'a',demo_profile:'early_career'}],JobProfile:[],Transaction:['2026-08-01','2026-09-01'].map((date,i)=>({id:`t${i}`,created_by_id:'a',demo_profile:null,description:'Second payroll',amount:1000,type:'income',date,source:'Plaid Sandbox',plaid_item_id:'item'}))};let searchMode='results';
-  await page.addInitScript(theme=>{localStorage.setItem('base44_access_token','fixture');localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:a','sandbox');},theme);
+  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:a','sandbox');},theme);
   await page.route('https://**/*',r=>r.abort());
   await page.route('**/api/**',async route=>{
    const url=new URL(route.request().url()),path=url.pathname,method=route.request().method();if(!path.startsWith('/api/'))return route.continue();let body={},status=200;

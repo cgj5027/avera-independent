@@ -1,50 +1,23 @@
-# Avera independent
+# Avera repository instructions
 
-This repository rebuilds the user-owned Avera application independently of Base44.
-Read `REBUILD.md`, `docs/INDEPENDENT_REBUILD_PLAN.md` and
-`docs/STAGED_DELIVERY.md` before implementation. The README describes the independent runtime; older stage audits and
-Base44-only restrictions are historical.
+Read `README.md`, `CONTRIBUTING.md` and the relevant guide in `docs/` before making changes.
 
-## Implementation rules
+- Preserve financial calculations, source labels, user/dataset isolation and established colors.
+- React/Tailwind is the UI; TypeScript/Node.js serves SQLite locally or PostgreSQL hosted.
+- Keep storage, auth, files and providers behind interfaces. Gateway integrations are the default.
+- Never put credentials in frontend variables or ship installation data/keys in desktop packages.
+- Production must not import test fixtures or a proprietary platform SDK/runtime.
+- Keep local startup loopback-only; public hosting requires explicit canonical HTTPS configuration.
+- LocalStorage is for preferences. V1 has no automatic desktop/online synchronization.
+- Demo/personal switching isolates datasets and refreshes views; reset is a separate action.
+- Target WCAG 2.2 AA and four-click access to important information.
+- Use synthetic data for tests; never treat fixtures as live provider certification.
 
-- Deliver bounded stages, running their checks before the next stage. Record
-  evidence and unresolved gates; never turn fixture results into live certification.
-- Preserve financial calculations, source labels, user/dataset isolation and the
-  established color tokens. Test financial behavior rather than implementation shape.
-- Target React/Tailwind and TypeScript/Node.js, SQLite locally/PostgreSQL hosted,
-  with gateway integrations by default. LocalStorage is for preferences only.
-- Keep storage, auth, files and providers behind replaceable interfaces. Retain
-  all agreed online integrations. Never ship shared credentials to the browser or
-  downloadable package; never print or commit secrets or real financial records.
-- Production code and packages must remain independent of Base44. Historical
-  platform fixtures are test-only; never reintroduce the SDK/plugin or import
-  those fixtures in runtime code. Do not link/deploy into the original application.
-- Version 1 has no multi-device synchronization; prepare identity, ownership,
-  revisions and change tracking without claiming synchronization is implemented.
-- Demo/personal switching must isolate datasets and refresh dependent views.
-  Switching away must not delete sample records; resetting is a separate action.
-- Target WCAG 2.2 AA and four-click access to important information. Automated
-  accessibility checks supplement manual validation, not replace it.
+Follow the checks in CONTRIBUTING.md. For backend changes run native tests against
+disposable SQLite and PostgreSQL with no PostgreSQL skips, build and run real local
+browser checks. Run relevant MCP checks for authorization changes and hosted TLS
+checks for public-host changes. Keep dependencies locked and report advisories.
+Use Node 22.18+ and erasable TypeScript for native server entrypoints.
 
-## Checks
-
-Install with `npm ci --ignore-scripts`. Run `npm test`, `npm run lint`,
-`npm run typecheck`, `npm run typecheck:backend`, `npm run typecheck:platform`
-and `npm run build` for a release
-checkpoint. Run relevant browser suites against a local preview with synthetic
-API fixtures; never use production records for destructive tests.
-
-For independent backend changes also run `npm run test:local` against disposable
-SQLite/PostgreSQL databases, `npm run build:local`, and `npm run test:local:browser`.
-The latter uses real temporary SQLite data and a server-process restart. CI
-requires PostgreSQL tests; a skipped local PostgreSQL case is not a pass.
-Use Node 22.18+ and erasable TypeScript syntax for the native server entrypoint.
-
-The default build is independent and writes dist-local. Run npm run
-check:independent after building, and run the MCP native/browser checks for
-authorization changes. Keep dependencies pinned by the lockfile and report
-advisories rather than hiding them. Live external-client/provider acceptance
-is distinct from synthetic protocol tests.
-
-Use conventional commits and stage-specific branches/PRs. Keep the original
-`cgj5027/avera` repository unchanged during this rebuild.
+Use conventional commits and focused branches/PRs. Do not change the separate
+original repository or production deployments as a side effect of source changes.

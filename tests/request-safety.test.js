@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { readJsonLimited, RequestFailure } from './fixtures/legacy-platform/shared/requestSafety.ts';
-import { validateResume } from './fixtures/legacy-platform/shared/resumeValidation.ts';
-import { claimUsage } from './fixtures/legacy-platform/shared/usageLimits.ts';
-import { allRecords, recentRecords } from './fixtures/legacy-platform/shared/plaid.ts';
+import { readJsonLimited, RequestFailure } from './fixtures/contracts/shared/requestSafety.ts';
+import { validateResume } from './fixtures/contracts/shared/resumeValidation.ts';
+import { claimUsage } from './fixtures/contracts/shared/usageLimits.ts';
+import { allRecords, recentRecords } from './fixtures/contracts/shared/plaid.ts';
 const fixture = vi.hoisted(() => ({ client: null }));
-vi.mock('npm:@base44/sdk@0.8.53', () => ({ createClientFromRequest: () => fixture.client }));
-import resume from './fixtures/legacy-platform/functions/parseResume/entry.ts';
+vi.mock('test:service-client', () => ({ createClientFromRequest: () => fixture.client }));
+import resume from './fixtures/contracts/functions/parseResume/entry.ts';
 const request = body => new Request('https://fixture.test', { method: 'POST', body: JSON.stringify(body) });
 const payload = (name='resume.txt', content='Skills: accounting') => ({ file_name:name, file_base64:btoa(content), consent:true });
 function quotaClient() {
@@ -101,7 +101,7 @@ describe('durable usage reservations', () => {
     }
   });
   it('keeps quota counters inaccessible to all user CRUD', () => {
-    const schema=JSON.parse(readFileSync('tests/fixtures/legacy-platform/entities/ServiceUsage.jsonc','utf8'));
+    const schema=JSON.parse(readFileSync('tests/fixtures/contracts/entities/ServiceUsage.jsonc','utf8'));
     expect(schema.rls).toEqual({create:false,read:false,update:false,delete:false});
   });
 });

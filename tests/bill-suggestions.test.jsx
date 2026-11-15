@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { matches } from './queryFixture';
-import { recurringCandidates } from './fixtures/legacy-platform/shared/recurringBills.ts';
+import { recurringCandidates } from './fixtures/contracts/shared/recurringBills.ts';
 const fixture=vi.hoisted(()=>({client:null,request:vi.fn()}));
-vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
+vi.mock('test:service-client',()=>({createClientFromRequest:()=>fixture.client}));
 vi.mock('@/services/billSuggestions',()=>({billSuggestionRequest:fixture.request}));
-import handler from './fixtures/legacy-platform/functions/suggestBills/entry.ts';
+import handler from './fixtures/contracts/functions/suggestBills/entry.ts';
 import BillSuggestions from '../src/components/bills/BillSuggestions';
 const now=new Date('2026-10-10T12:00:00Z');
 const payments=(name='Power',category='Utilities')=>['2026-07-05','2026-08-05','2026-09-05','2026-10-05'].map((date,i)=>({id:String(i),created_by_id:'a',description:name,type:'expense',category,amount:80,date}));
@@ -58,7 +58,7 @@ describe('conservative recurrence evidence',()=>{
 });
 describe('actual backend handler with SDK and AI fixtures',()=>{
  it('protects dismissal records with ownership rules on every operation',()=>{
-  const schema=JSON.parse(readFileSync('tests/fixtures/legacy-platform/entities/BillSuggestionDismissal.jsonc','utf8'));
+  const schema=JSON.parse(readFileSync('tests/fixtures/contracts/entities/BillSuggestionDismissal.jsonc','utf8'));
   expect(Object.values(schema.rls)).toEqual(Array(4).fill({created_by_id:'{{user.id}}'}));
  });
  it('scopes demo suggestions and saves to the requested owned demo workspace',async()=>{
@@ -101,4 +101,4 @@ describe('individual review UI',()=>{
  it('dismisses individual suggestions and keeps failed dismissals visible',async()=>{const c=candidates()[0];fixture.request.mockResolvedValueOnce({suggestions:[c],ai_available:true}).mockRejectedValueOnce(new Error('Network unavailable'));render(<BillSuggestions onAdded={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'Suggest bills'}));await screen.findByText('Power');fireEvent.click(screen.getByRole('button',{name:'Dismiss'}));await screen.findByRole('alert');expect(screen.getByText('Power')).toBeTruthy();});
 });
 
-vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/contracts/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));

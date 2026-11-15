@@ -1,6 +1,6 @@
 import {beforeEach,afterEach,it,expect,vi} from 'vitest';
-import {searchListings} from './fixtures/legacy-platform/shared/opportunitySource.ts';
-import {createJobArea,milesBetween,validDistance} from './fixtures/legacy-platform/shared/jobDistance.ts';
+import {searchListings} from './fixtures/contracts/shared/opportunitySource.ts';
+import {createJobArea,milesBetween,validDistance} from './fixtures/contracts/shared/jobDistance.ts';
 const point=(lon,lat,type='city')=>({geometry:{coordinates:[lon,lat]},properties:{type}});
 let fetchMock;
 beforeEach(()=>{

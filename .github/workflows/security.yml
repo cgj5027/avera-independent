@@ -77,14 +77,14 @@ jobs:
           if (!ready) throw new Error('Local preview did not become ready');
           JS
           export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
-          npm run test:stage3:browser
+          npm run test:ui:browser
       - run: npm run build:local
       - name: Run real independent browser workflows and process restart
         shell: bash
         run: |
           export CHROMIUM_PATH="$(node -p "require('playwright').chromium.executablePath()")"
           npm run test:local:browser
-          npm run test:stage5:browser
+          npm run test:samples:browser
           npm run test:recovery:browser
           npm run test:mcp:browser
           npm run test:hosted:browser
