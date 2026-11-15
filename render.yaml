@@ -1,0 +1,56 @@
+# Full financial application. This does not define or modify the existing gateway.
+# Review paid resources before applying. See docs/HOSTED_APP_SETUP.md.
+services:
+  - type: web
+    name: avera-web
+    runtime: node
+    region: virginia
+    plan: 1c-2g
+    branch: main
+    numInstances: 1
+    autoDeployTrigger: checksPass
+    buildCommand: npm ci --include=dev --ignore-scripts && npm run build && npm run check:independent
+    startCommand: npm run start:hosted
+    healthCheckPath: /api/v1/health
+    maxShutdownDelaySeconds: 120
+    domains:
+      - avera.run
+    disk:
+      name: avera-web-private
+      mountPath: /var/data
+      sizeGB: 2
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: AVERA_DATA_STORE
+        value: postgres
+      - key: AVERA_DATABASE_URL
+        fromDatabase:
+          name: avera-financial-db
+          property: connectionString
+      - key: AVERA_HOSTED_DATA_DIR
+        value: /var/data/avera
+      - key: AVERA_INTEGRATION_MODE
+        value: gateway
+      - key: AVERA_GATEWAY_URL
+        value: https://avera-gateway.onrender.com
+      - key: AVERA_GATEWAY_TOKEN
+        sync: false
+      - key: AVERA_VAULT_KEY
+        sync: false
+      - key: AVERA_AUTH_EMAIL
+        value: "true"
+      - key: AVERA_SYNC_ENABLED
+        value: "false"
+      - key: AVERA_MCP_ENABLED
+        value: "false"
+databases:
+  - name: avera-financial-db
+    databaseName: avera_financial
+    user: avera_app
+    region: virginia
+    plan: 0.1c-256mb
+    postgresMajorVersion: "16"
+    diskSizeGB: 5
+    storageAutoscalingEnabled: false
+    ipAllowList: []

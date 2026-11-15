@@ -38,10 +38,15 @@ function send(res: ServerResponse, status: number, value: unknown) {
 function cookie(req: IncomingMessage) {
   return req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('avera_session='))?.slice('avera_session='.length);
 }
-export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false,host="127.0.0.1",healthHost,recoveryOptions }: {
-  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;host?:'127.0.0.1'|'0.0.0.0';healthHost?:string;recoveryOptions?:RecoveryOptions;
+export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,fetcher=fetch,gatewayOnly=false,hostedApplication=false,host="127.0.0.1",healthHost,recoveryOptions }: {
+  db: Database; port?: number; dist?: string; publicOrigin?: string; env?:Record<string,string|undefined>;fetcher?:typeof fetch;gatewayOnly?:boolean;hostedApplication?:boolean;host?:'127.0.0.1'|'0.0.0.0';healthHost?:string;recoveryOptions?:RecoveryOptions;
 }) {
-  if(host!=='127.0.0.1'&&(!gatewayOnly||host!=='0.0.0.0'||!publicOrigin))throw new Error('Public binding requires an HTTPS gateway configuration.');
+  if(hostedApplication&&gatewayOnly)throw Error('Use separate application and headless gateway services.');
+  if(host!=='127.0.0.1'){
+    if(host!=='0.0.0.0'||(!gatewayOnly&&!hostedApplication)||!publicOrigin)throw Error('Public binding requires an explicit HTTPS application or gateway configuration.');
+    try{const u=new URL(publicOrigin);if(u.protocol!=='https:'||u.origin!==publicOrigin)throw Error();}catch{throw Error('Public binding requires an exact HTTPS origin.');}
+  }
+  if(hostedApplication){try{if(!publicOrigin)throw Error();const u=new URL(publicOrigin);if(u.protocol!=='https:'||u.origin!==publicOrigin)throw Error();}catch{throw Error('Hosted application mode requires its canonical HTTPS origin.');}}
   if(recoveryOptions&&!gatewayOnly)await beforeUpgrade(db,recoveryOptions);
   await migrate(db);
   const store=new RecordStore(db);
@@ -62,7 +67,7 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
     try {
       const expected=new URL(publicOrigin ?? origin);
       const allowed=publicOrigin ? [expected.host] : [expected.host,`localhost:${expected.port}`];
-      const healthProbe=gatewayOnly&&req.method==='GET'&&req.url==='/api/v1/health'&&healthHost&&req.headers.host===healthHost;
+      const healthProbe=(gatewayOnly||hostedApplication)&&req.method==='GET'&&req.url==='/api/v1/health'&&healthHost&&req.headers.host===healthHost;
       if (!healthProbe&&(!req.headers.host || !allowed.includes(req.headers.host))) throw new ApiError(421,'INVALID_HOST','Invalid host.');
       const requestOrigin=publicOrigin ?? `http://${req.headers.host}`;
       const url=new URL(req.url ?? '/',requestOrigin), method=req.method ?? 'GET';

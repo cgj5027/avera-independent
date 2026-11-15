@@ -87,6 +87,7 @@ jobs:
           npm run test:stage5:browser
           npm run test:recovery:browser
           npm run test:mcp:browser
+          npm run test:hosted:browser
           npm run package:desktop -- "$RUNNER_TEMP/avera-browser-package"
           AVERA_TEST_DESKTOP_PACKAGE="$RUNNER_TEMP/avera-browser-package" npm run test:local:browser
   desktop-preview:
