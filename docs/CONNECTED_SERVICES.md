@@ -1,3 +1,7 @@
+# Current release note
+
+Stage 7 retires the compatibility SDK/plugin and supplies [independent inbound MCP](INDEPENDENT_MCP.md). Provider gateway/direct integrations below remain available. MCP is separate from Ask Avera and disabled by default. Old stage acceptance notes below are historical; see STAGED_DELIVERY.md for current evidence.
+
 # Stage 4: independent connected services
 
 Stage 4 supplies the implementation and synthetic acceptance checks. **Live

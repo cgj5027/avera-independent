@@ -1,5 +1,5 @@
-import type { Application, Collection, Fields } from '../contracts';
-import { PUBLIC_COLLECTIONS } from '../contracts';
+import type { Application, Collection, Fields } from '../../src/platform/contracts';
+import { PUBLIC_COLLECTIONS } from '../../src/platform/contracts';
 
 /** SDK-shaped types stay in this temporary compatibility adapter. */
 interface LegacyClient {

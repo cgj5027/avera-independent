@@ -14,9 +14,8 @@ export function safeReturnTo() {
   try {
     const url = new URL(raw, window.location.origin);
     if (url.origin !== window.location.origin) return "/";
-    // Only access_token/clear_access_token are still URL-read by app-params.js, but the
-    // whole bootstrap set stays stripped: one going back to a URL read must not silently
-    // become injectable again. Normal app-flow params (e.g. the OAuth consent ctx) are kept.
+    // Strip retired URL credential/bootstrap parameters from old bookmarks as well.
+    // Normal app-flow parameters, including the opaque consent handle, are kept.
     for (const p of ["access_token", "clear_access_token", "app_id", "app_base_url", "functions_version", "from_url"]) {
       url.searchParams.delete(p);
     }

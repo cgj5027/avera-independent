@@ -11,9 +11,11 @@ const assert=require('node:assert/strict');
  let child,browser;
  const checks=[],forbidden=[],errors=[];
  async function start(){
-  const env={...process.env,AVERA_PORT:'0',AVERA_DATA_STORE:'sqlite',AVERA_SQLITE_PATH:join(dir,'records.sqlite'),AVERA_FILES_PATH:join(dir,'files'),AVERA_INTEGRATION_MODE:'gateway'};
+  const env={...process.env,AVERA_PORT:'0',AVERA_DATA_STORE:'sqlite',AVERA_SQLITE_PATH:join(dir,'records.sqlite'),AVERA_FILES_PATH:join(dir,'files'),AVERA_INTEGRATION_MODE:'gateway',AVERA_HOME:join(dir,'home')};
   for(const key of ['AVERA_GATEWAY_URL','AVERA_PUBLIC_ORIGIN','AVERA_DATABASE_URL']) delete env[key];
-  child=spawn(process.execPath,['--experimental-strip-types','server/index.ts'],{cwd:resolve('.'),env,stdio:['ignore','pipe','pipe']});
+  const packageRoot=process.env.AVERA_TEST_DESKTOP_PACKAGE;
+  const entry=packageRoot?[join(resolve(packageRoot),'scripts','desktop-launcher.mjs'),'--no-browser']:['--experimental-strip-types','server/index.ts'];
+  child=spawn(process.execPath,entry,{cwd:resolve('.'),env,stdio:['ignore','pipe','pipe','ipc']});
   return new Promise((resolve,reject)=>{
    let out='',stderr=''; const timeout=setTimeout(()=>reject(new Error('Local server startup timed out: '+stderr)),15000);
    child.stderr.on('data',chunk=>{stderr+=String(chunk).slice(0,2000);});
@@ -21,7 +23,7 @@ const assert=require('node:assert/strict');
    child.stdout.on('data',chunk=>{out+=String(chunk);const match=out.match(/http:\/\/127\.0\.0\.1:\d+/);if(match){clearTimeout(timeout);resolve(match[0]);}});
   });
  }
- async function stop(){if(!child||child.exitCode!==null)return;await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGTERM');});}
+ async function stop(){if(!child||child.exitCode!==null)return;await new Promise(resolve=>{child.once('exit',resolve);child.send('avera:shutdown');});}
  try{
   let url=await start();
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});

@@ -18,4 +18,8 @@ const dist=resolve('dist-local');
 if (!existsSync(resolve(dist,'index.html'))) throw new Error('Run npm run build:local before starting the local application.');
 const runtime=await startLocalServer({db:openDatabase(config),port,dist,publicOrigin,env:process.env,recoveryOptions:recoveryOptions(process.env,config.storage.driver==='sqlite'?config.storage.path:undefined)});
 console.log(`Avera is available at ${runtime.url}`);
-for (const signal of ['SIGINT','SIGTERM']) process.once(signal,()=>{ void runtime.close().then(()=>process.exit(0)); });
+let closing=false;
+const shutdown=()=>{if(closing)return;closing=true;void runtime.close().then(()=>process.exit(0));};
+for (const signal of ['SIGINT','SIGTERM']) process.once(signal,shutdown);
+// The portable launcher uses IPC so Windows also closes SQLite and backup work cleanly.
+if(process.send){process.on('message',message=>{if(message==='avera:shutdown')shutdown();});process.once('disconnect',shutdown);}

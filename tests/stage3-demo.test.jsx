@@ -1,4 +1,4 @@
-import { Base44Error } from '@base44/sdk';
+import { FixtureServiceError as Base44Error } from './fixtures/service-error';
 import ModeEntry from '../src/pages/ModeEntry';
 import { Routes, Route } from 'react-router-dom';
 import React from 'react';
@@ -6,12 +6,12 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from './test-utils';
 import { matches } from './queryFixture';
 const sdk=vi.hoisted(()=>({auth:{me:vi.fn()},app:{getPublicSettings:vi.fn()},entities:{},functions:{invoke:vi.fn()}}));
-vi.mock('@/lib/app-params',()=>({appParams:{token:'fixture'}}));
-vi.mock('@/api/base44Client',()=>({base44:sdk}));
-import {application} from '../src/api/application';
+vi.mock('./fixtures/params',()=>({appParams:{token:'fixture'}}));
+vi.mock('./fixtures/client',()=>({base44:sdk}));
+import {application} from '@/api/application';
 import * as data from '../src/services/dataService';
 import { buildDemoDataset, DEMO_PROFILE_KEYS, createDemoRecords } from '../src/services/demoProfiles';
-import { demoSandboxConfig } from '../base44/shared/demoPlaidConfigs.ts';
+import { demoSandboxConfig } from './fixtures/legacy-platform/shared/demoPlaidConfigs.ts';
 import { removeDemoData, loadDemoProfile, resetDemoProfile } from '../src/services/demoMode';
 import { setModeOwner, setDataMode, setDemoWorkspace, getDemoWorkspace, getDataMode } from '../src/lib/mode';
 import { connectBank } from '../src/services/plaidClient';
@@ -169,7 +169,7 @@ it('makes sample scenarios a secondary disclosure and opens personal finances fi
  await screen.findByRole('button',{name:'Sign out'});fireEvent.click(screen.getByRole('button',{name:'Get started'}));
  expect(await screen.findByRole('heading',{name:'Your finances'})).toBeTruthy();expect(getDataMode()).toBe('manual');
 });
-it('handles the real SDK Base44Error shape for Sandbox setup and request limits',async()=>{
+it('handles the retained service-error shape for Sandbox setup and request limits',async()=>{
  sdk.functions.invoke.mockRejectedValueOnce(new Base44Error('sensitive diagnostic',503,'SANDBOX_NOT_CONFIGURED',{}));
  await expect(connectBank()).rejects.toThrow('not configured');
  sdk.functions.invoke.mockRejectedValueOnce(new Base44Error('sensitive diagnostic',429,undefined,{}));

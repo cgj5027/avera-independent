@@ -1,6 +1,6 @@
 // Acceptance regression: SDK fixtures only; no Plaid requests or real records.
 import { expect, it, vi } from 'vitest';
-import { credentialFor } from '../base44/shared/plaidRecords.ts';
+import { credentialFor } from './fixtures/legacy-platform/shared/plaidRecords.ts';
 it('legacy migration returns a persisted vault ID needed by first sync/disconnect',async()=>{
  const rows=[];
  const item={id:'legacy-item',item_id:'sandbox-item',created_by_id:'fixture-user',sync_cursor:'old-cursor',demo_profile:'early_career'};

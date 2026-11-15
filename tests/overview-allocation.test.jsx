@@ -11,7 +11,7 @@ import { setModeOwner, setDataMode, clearDataMode } from '../src/lib/mode';
 import { matches } from './queryFixture';
 
 const sdk = vi.hoisted(() => ({ auth: { me: vi.fn() }, entities: {}, functions: { invoke: vi.fn() } }));
-vi.mock('@/api/base44Client', () => ({ base44: sdk }));
+vi.mock('./fixtures/client', () => ({ base44: sdk }));
 const plan = (income = 3000, bills = 600) => projectYearlyPlan({
   incomes: [{ amount: income, frequency: 'monthly', active: true }],
   bills: [{ name: 'Rent', amount: bills, frequency: 'monthly' }],

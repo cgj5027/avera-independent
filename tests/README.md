@@ -1,3 +1,13 @@
+# Current independent regression boundaries
+
+Production uses the Avera HTTP adapter only. `fixtures/legacy-platform` and
+`fixtures/legacy-adapter.ts` preserve older synthetic regression contracts; their
+virtual SDK/runtime aliases are test doubles, not installed vendor dependencies.
+UI fixtures inject that in-memory application at the application port. Real
+independent native/browser suites separately verify HTTP, SQLite/PostgreSQL,
+package restart/recovery, and OAuth/MCP ownership and consent. Do not import these
+fixtures from production or ship them in distributions.
+
 # Audit validation
 
 For Overview's allocation/outlook charts, build and start the frontend preview, then run `node tests/overview-charts-browser.cjs` with `AUDIT_BASE_URL` set to its URL. This fixture runner checks the desktop 1/3–2/3 split, stacked mobile layouts, four inline month labels, accessible amounts/tables and info descriptors, plus planned/estimated/shortfall/empty scenarios in both themes at four widths. `tests/overview-allocation.test.jsx` covers projection breakdowns and authenticated dataset boundaries; fixtures do not verify hosted persistence.

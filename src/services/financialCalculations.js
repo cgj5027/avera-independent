@@ -1,4 +1,4 @@
-import { planningTotal } from '../../base44/shared/planning';
+import { planningTotal } from '../../shared/planning.js';
 /**
  * Financial calculation services — business-logic layer.
  * Pure functions only: pass data in, return data out, so they are

@@ -1,4 +1,4 @@
-import { buildDemoDataset,createDemoRecords,DEMO_PROFILE_KEYS } from '../src/services/demoProfiles.js';
+import { buildDemoDataset,createDemoRecords,DEMO_PROFILE_KEYS } from '../shared/demo-profiles.js';
 import { RecordStore,body } from './store.ts';
 import { object } from './validation.ts';
 import { ApiError,invalid } from './errors.ts';

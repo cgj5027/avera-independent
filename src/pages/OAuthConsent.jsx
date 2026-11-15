@@ -4,13 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 
-// App-side OAuth consent page for the app's MCP server. The platform redirects
-// AI clients here (see base44/mcp/config.json `consent_path`) with an opaque
-// `ctx` handle — the authorization request itself lives on the server. This page
-// gates on the app-user session, fetches the display info for that handle, shows
-// the categories of access being granted, and posts the approve/deny decision.
-// Transport lives behind application.consent; preserve opaque-handle, cookie
-// fallback and single-use response semantics when adding another adapter.
+// The server owns and expires opaque OAuth handles; the browser never accepts raw redirect URIs.
 export default function OAuthConsent() {
   const ctx = new URLSearchParams(window.location.search).get("ctx");
   const [info, setInfo] = useState(null);
@@ -45,14 +39,7 @@ export default function OAuthConsent() {
         if (!data.authenticated) {
           // The short handle rides back in returnTo; login_path is
           // owner-configured and validated server-side as a same-origin path.
-          // Send from_url too: a custom-auth app coerced to platform auth (e.g.
-          // public_without_login under workspace SSO) serves the platform login,
-          // which honors from_url rather than returnTo. Rebuild the query from
-          // `ctx` alone — never forward window.location.search raw: the platform
-          // resume returns from_url verbatim, so crafted extras on the consent
-          // link (app_base_url, access_token, …) would ride through the login
-          // round-trip and app-params.js would persist them into the freshly
-          // authenticated session.
+          // Preserve only the server-owned handle through the sign-in round trip.
           const returnTo =
             window.location.pathname + "?ctx=" + encodeURIComponent(ctx);
           const encoded = encodeURIComponent(returnTo);
@@ -90,10 +77,8 @@ export default function OAuthConsent() {
             ((info && info.login_path) || "/login") + "?returnTo=" + encoded + "&from_url=" + encoded;
           return;
         }
-        // These all come AFTER the single-use handle is atomically consumed
-        // (409 tool set changed; 403 host/resource/app mismatch; 404 access
-        // gone; 400 malformed/handle already used), so retrying can only 404.
-        // Show a terminal reconnect state, not an impossible "try again".
+        // Expired/used handles, account mismatches and changed permissions
+        // require a fresh client flow instead of repeated submissions here.
         if ([400, 403, 404, 409].includes(res.status)) {
           let detail = "";
           try { detail = (await res.json()).detail; } catch (_) { /* keep default */ }
@@ -148,7 +133,7 @@ export default function OAuthConsent() {
   if (reconnect) {
     return (
       <AuthLayout icon={ShieldCheck} title="Reconnect required">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="p-3 rounded-lg bg-danger-surface text-danger-text text-sm">
           {reconnect}
         </div>
       </AuthLayout>
@@ -161,7 +146,7 @@ export default function OAuthConsent() {
   if (error && !info) {
     return (
       <AuthLayout icon={ShieldCheck} title="Authorize access">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="p-3 rounded-lg bg-danger-surface text-danger-text text-sm">
           {error}
         </div>
       </AuthLayout>
@@ -177,11 +162,14 @@ export default function OAuthConsent() {
       subtitle={`${client} wants to access ${appName} on your behalf`}
     >
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-danger-surface text-danger-text text-sm">
           {error}
         </div>
       )}
 
+      {info.account_email && <p className="mb-2 text-sm text-muted-foreground">Signed in as {info.account_email}</p>}
+      {info.redirect_origin && <p className="mb-3 break-words text-sm text-muted-foreground">Client redirect: {info.redirect_origin}. Client names are supplied by the client; approve only a connection you started and trust.</p>}
+      <p className="mb-4 text-sm text-muted-foreground">Approval shares your personal records with this client. It can retain information it receives. Sample records, private files and provider credentials are excluded. You can revoke future access in Settings → General → Connected AI clients.</p>
       <p className="text-sm font-medium text-foreground mb-2">
         {tools.length ? `It will be able to use these tools in ${appName}:` : "No tools requested"}
       </p>

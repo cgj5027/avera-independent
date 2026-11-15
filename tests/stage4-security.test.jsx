@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 import { matches } from './queryFixture';
 const fixture=vi.hoisted(()=>({client:null}));
 vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
-import categories from '../base44/functions/suggestCategories/entry.ts';
-import project from '../base44/functions/projectAnnualIncome/entry.ts';
-import resume from '../base44/functions/parseResume/entry.ts';
+import categories from './fixtures/legacy-platform/functions/suggestCategories/entry.ts';
+import project from './fixtures/legacy-platform/functions/projectAnnualIncome/entry.ts';
+import resume from './fixtures/legacy-platform/functions/parseResume/entry.ts';
 const req=body=>new Request('https://fixture.test',{method:'POST',body:JSON.stringify(body)});
 let rows,user,llm,sign,upload;
 beforeEach(()=>{
@@ -36,8 +36,8 @@ describe('Stage 4 backend security regression fixtures',()=>{
  it('propagates the user signing boundary denial without sending the file to AI',async()=>{sign.mockRejectedValue(new Error('Forbidden private file'));expect((await resume(req({file_name:'resume.pdf',consent:true,file_base64:btoa('%PDF-1.7\nfixture\n%%EOF')}))).status).toBe(503);expect(llm).not.toHaveBeenCalled();});
  it('all financial schemas bind all CRUD operations to authenticated ownership',()=>{
   for(const name of ['Account','Bill','Transaction','IncomeSource','Goal','Property','MortgageRecord','BudgetCategory','HouseholdProfile','JobProfile','ForecastRecord','PlaidItem','BillSuggestionDismissal']) {
-   const schema=JSON.parse(readFileSync(`base44/entities/${name}.jsonc`,'utf8'));expect(Object.values(schema.rls)).toEqual(Array(4).fill({created_by_id:'{{user.id}}'}));
+   const schema=JSON.parse(readFileSync(`tests/fixtures/legacy-platform/entities/${name}.jsonc`,'utf8'));expect(Object.values(schema.rls)).toEqual(Array(4).fill({created_by_id:'{{user.id}}'}));
   }
  });
 });
-vi.mock('../base44/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));

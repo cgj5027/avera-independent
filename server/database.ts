@@ -61,7 +61,7 @@ export function openDatabase(config: ReturnType<typeof readServerConfig>): Datab
   return config.storage.driver === 'sqlite'
     ? sqliteDatabase(config.storage.path!) : postgresDatabase(config.storage.connectionString!);
 }
-export async function migrate(db: Database, targetVersion: 1 | 2 | 3 | 4 = 4) {
+export async function migrate(db: Database, targetVersion: 1 | 2 | 3 | 4 | 5 = 5) {
   await db.transaction(async tx => {
     if (db.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(718303)');
     await tx.query('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
@@ -118,6 +118,16 @@ export async function migrate(db: Database, targetVersion: 1 | 2 | 3 | 4 = 4) {
       await tx.query(`CREATE TABLE recovery_imports(owner_id TEXT NOT NULL REFERENCES users(id),fingerprint TEXT NOT NULL,
         applied_at TEXT NOT NULL,PRIMARY KEY(owner_id,fingerprint))`);
       await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(4,$1)',[new Date().toISOString()]);
+    }
+    if(version < 5 && targetVersion >= 5){
+      // Invalidate older root-path cookies before introducing external OAuth redirects.
+      await tx.query('DELETE FROM sessions');
+      await tx.query('CREATE TABLE mcp_clients(client_id TEXT PRIMARY KEY,metadata TEXT NOT NULL,created_at BIGINT NOT NULL)');
+      await tx.query('CREATE TABLE mcp_requests(handle_hash TEXT PRIMARY KEY,payload TEXT NOT NULL,owner_id TEXT REFERENCES users(id),expires_at BIGINT NOT NULL,used INTEGER NOT NULL DEFAULT 0)');
+      await tx.query('CREATE TABLE mcp_grants(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL REFERENCES users(id),client_id TEXT NOT NULL REFERENCES mcp_clients(client_id),resource TEXT NOT NULL,permissions_hash TEXT NOT NULL,created_at BIGINT NOT NULL,revoked INTEGER NOT NULL DEFAULT 0)');
+      await tx.query('CREATE TABLE mcp_codes(code_hash TEXT PRIMARY KEY,grant_id TEXT NOT NULL REFERENCES mcp_grants(id),redirect_uri TEXT NOT NULL,challenge TEXT NOT NULL,resource TEXT NOT NULL,expires_at BIGINT NOT NULL,used INTEGER NOT NULL DEFAULT 0)');
+      await tx.query('CREATE TABLE mcp_tokens(token_hash TEXT PRIMARY KEY,grant_id TEXT NOT NULL REFERENCES mcp_grants(id),kind TEXT NOT NULL,expires_at BIGINT NOT NULL,used INTEGER NOT NULL DEFAULT 0)');
+      await tx.query('INSERT INTO schema_migrations(version,applied_at) VALUES(5,$1)',[new Date().toISOString()]);
     }
   });
 }

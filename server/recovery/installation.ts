@@ -30,6 +30,8 @@ export async function unpackInstallation(archive:Buffer,key:string,destination:s
    const integrity=check.prepare('PRAGMA integrity_check').all();if(integrity.length!==1||Object.values(integrity[0])[0]!=='ok')invalid('The restored SQLite snapshot failed integrity verification.');
    const version=check.prepare('SELECT MAX(version) AS version FROM schema_migrations').get();if(Number(version?.version)!==doc.schema_version)invalid('Snapshot schema metadata does not match.');
    for(const table of ['sessions','auth_challenges','service_leases'])if(check.prepare("SELECT name FROM sqlite_master WHERE name=? AND type='table'").get(table))check.exec('DELETE FROM '+table);
+   if(check.prepare("SELECT name FROM sqlite_master WHERE name='mcp_grants' AND type='table'").get())check.exec('UPDATE mcp_grants SET revoked=1');
+   if(check.prepare("SELECT name FROM sqlite_master WHERE name='mcp_requests' AND type='table'").get())check.exec('UPDATE mcp_requests SET used=1');
    if(check.prepare("SELECT name FROM sqlite_master WHERE name='private_data' AND type='table'").get())check.exec("DELETE FROM private_data WHERE collection='AccountMail'");
   }finally{check.close();}
   for(const f of files){const target=join(out,'files',...f.path.split('/'));if(!target.startsWith(join(out,'files')+sep))invalid('Unsafe backup file path.');await mkdir(dirname(target),{recursive:true,mode:0o700});await writeFile(target,f.bytes,{flag:'wx',mode:0o600});}

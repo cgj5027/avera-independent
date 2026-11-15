@@ -1,3 +1,4 @@
+const {fixturePath}=require('./http-fixture.cjs');
 // Fixture browser audit. No real Plaid/model calls are made.
 const { chromium }=require('playwright');
 const assert=require('node:assert/strict');
@@ -6,11 +7,11 @@ const assert=require('node:assert/strict');
  const outcomes=[];const violations=[];
  for(const theme of ['light','dark'])for(const width of (process.env.AUDIT_WIDTHS ? process.env.AUDIT_WIDTHS.split(',').map(Number) : [320,390,768,1440])) {
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(({theme})=>{localStorage.setItem('base44_access_token','fixture');localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:audit-user','demo');localStorage.setItem('avera_demo_workspace:audit-user',JSON.stringify({profile:'multi_income',plaid_item_id:'fixture-item'}));},{theme});
+  await page.addInitScript(({theme})=>{localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:audit-user','demo');localStorage.setItem('avera_demo_workspace:audit-user',JSON.stringify({profile:'multi_income',plaid_item_id:'fixture-item'}));},{theme});
   await page.route('https://**/*',r=>r.abort());
   let disconnected=false;
   await page.route('**/api/**',async route=>{
-   const path=new URL(route.request().url()).pathname;if(!path.startsWith('/api/'))return route.continue();let body={};
+   const path=fixturePath(route.request().url());if(!path.startsWith('/api/'))return route.continue();let body={};
    if(path.includes('public-settings'))body={id:'fixture',public_settings:{}};
    else if(path.endsWith('/User/me'))body={id:'audit-user',email:'fixture@example.test',full_name:'Fixture',role:'user'};
    else if(path.includes('/functions/askAvera'))body={answer:'Fixture response only. These are sample records.'};

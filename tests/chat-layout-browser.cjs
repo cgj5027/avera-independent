@@ -1,3 +1,4 @@
+const {fixturePath}=require('./http-fixture.cjs');
 // Actual UI with intercepted API fixtures; no cloud/model calls.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
@@ -12,14 +13,14 @@ const assert = require('node:assert/strict');
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.addInitScript(({ theme, mode }) => {
-      localStorage.setItem('base44_access_token', 'fixture');
+
       localStorage.setItem('theme', theme);
       sessionStorage.setItem('avera_data_mode:chat-user', mode);
       if (mode === 'demo') localStorage.setItem('avera_demo_workspace:chat-user', JSON.stringify({ profile: 'multi_income' }));
     }, { theme, mode: size.mode });
     await page.route('https://**/*', route => route.abort());
     await page.route('**/api/**', async route => {
-      const path = new URL(route.request().url()).pathname;
+      const path = fixturePath(route.request().url());
       let body = {};
       if (path.includes('public-settings')) body = { id: 'fixture', public_settings: {} };
       else if (path.endsWith('/User/me')) body = { id: 'chat-user', email: 'fixture@example.test', role: 'user' };

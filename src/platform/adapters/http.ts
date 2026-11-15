@@ -26,7 +26,7 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     try { const u=new URL(raw,window.location.origin); return u.origin===window.location.origin && !u.pathname.startsWith('//') && !u.pathname.includes('\\') ? u.pathname+u.search : '/'; }
     catch { return '/'; }
   }
-  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true,sampleWorkspaces:true,recovery:false};
+  const capabilities={oauth:false,passwordReset:false,emailVerification:false,privacyControls:true,sampleWorkspaces:true,recovery:false,mcp:false};
   const collections=new Map<string,Collection>();
   return {
     capabilities,
@@ -59,7 +59,8 @@ export function createHttpAdapter({ fetcher=globalThis.fetch.bind(globalThis), n
     }},
     services:{invoke:async(name,payload={})=>({data:await request('/services/'+encodeURIComponent(name),'POST',payload)})},
     files:{parseResume:async input=>({data:await request('/services/parseResume','POST',input)})},
-    settings:{getPublic:async()=>{const data=await request('/settings/public');capabilities.recovery=data.public_settings?.recovery===true;const auth=data.public_settings?.auth;capabilities.oauth=auth?.oauth===true;capabilities.passwordReset=auth?.password_reset===true;capabilities.emailVerification=auth?.email_verification===true;return data;}},
-    consent:{getInfo:async()=>new Response('{}',{status:501}),respond:async()=>new Response('{}',{status:501})},
+    settings:{getPublic:async()=>{const data=await request('/settings/public');capabilities.recovery=data.public_settings?.recovery===true;capabilities.mcp=data.public_settings?.mcp===true;const auth=data.public_settings?.auth;capabilities.oauth=auth?.oauth===true;capabilities.passwordReset=auth?.password_reset===true;capabilities.emailVerification=auth?.email_verification===true;return data;}},
+    mcp:{list:()=>request('/mcp/grants'),revoke:id=>request('/mcp/revoke','POST',{grant_id:id})},
+    consent:{getInfo:handle=>fetcher('/api/v1/mcp/consent-info?handle='+encodeURIComponent(handle),{credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(20000)}),respond:(handle,action)=>fetcher('/api/v1/mcp/authorize-grant',{method:'POST',credentials:'same-origin',redirect:'error',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json'},body:JSON.stringify({ctx:handle,action})})},
   };
 }

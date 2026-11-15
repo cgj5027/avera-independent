@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { readClientConfig } from '../src/platform/config';
 import { readServerConfig } from '../server/config';
 import { createApplication } from '../src/platform/createApplication';
-import { createBase44Adapter } from '../src/platform/adapters/base44';
+import { createBase44Adapter } from './fixtures/legacy-adapter';
 import type { Application } from '../src/platform/contracts';
 
 function fixture(token: string | null = 'fixture-token') {
@@ -34,12 +34,12 @@ function fixture(token: string | null = 'fixture-token') {
 }
 
 describe('explicit backend selection', () => {
-  it('keeps compatibility as the temporary default and selects only the requested factory', () => {
+  it('uses the independent HTTP default and selects only the requested factory', () => {
     const legacy = fixture().application;
     const alternative = { name: 'independent implementation' } as unknown as Application;
     const base44 = vi.fn(() => legacy);
     const http = vi.fn(() => alternative);
-    expect(readClientConfig()).toEqual({ backend: 'base44' });
+    expect(readClientConfig()).toEqual({ backend: 'http' });
     expect(createApplication(readClientConfig({ VITE_AVERA_BACKEND: 'http' }), { base44, http })).toBe(alternative);
     expect(base44).not.toHaveBeenCalled();
     expect(http).toHaveBeenCalledOnce();
@@ -69,7 +69,7 @@ describe('backend-only storage and provider configuration', () => {
     const env = { AVERA_DATA_STORE: 'postgres', AVERA_DATABASE_URL: 'postgresql://example.test/avera', AVERA_INTEGRATION_MODE: 'direct' };
     expect(readServerConfig(env).storage).toEqual({ driver: 'postgres', connectionString: env.AVERA_DATABASE_URL });
     expect(readServerConfig(env).integrations.mode).toBe('direct');
-    expect(readClientConfig(env)).toEqual({ backend: 'base44' });
+    expect(readClientConfig(env)).toEqual({ backend: 'http' });
     expect(readServerConfig({ AVERA_SQLITE_PATH: 'D:\\Avera\\data.sqlite', AVERA_FILES_PATH: '/data/private' }).storage)
       .toEqual({ driver: 'sqlite', path: 'D:\\Avera\\data.sqlite' });
   });

@@ -5,15 +5,15 @@ import {matches} from './queryFixture';
 const fixture=vi.hoisted(()=>({client:null}));
 const sdk=vi.hoisted(()=>({functions:{invoke:vi.fn()}}));
 vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
-vi.mock('@/api/base44Client',()=>({base44:sdk}));
-import contribute from '../base44/functions/logGoalContribution/entry.ts';
-import feedback from '../base44/functions/submitFeedback/entry.ts';
-import ask from '../base44/functions/askAvera/entry.ts';
+vi.mock('./fixtures/client',()=>({base44:sdk}));
+import contribute from './fixtures/legacy-platform/functions/logGoalContribution/entry.ts';
+import feedback from './fixtures/legacy-platform/functions/submitFeedback/entry.ts';
+import ask from './fixtures/legacy-platform/functions/askAvera/entry.ts';
 import IncomeDialog from '../src/components/income/IncomeDialog';
 import FeedbackForm from '../src/components/settings/FeedbackForm';
 import {projectYearlyPlan,totalMonthlyExpenses} from '../src/services/financialCalculations';
 import {monthlyAllocation} from '../src/services/overviewAllocation';
-import {withGoalContributions} from '../base44/shared/goalSavings.ts';
+import {withGoalContributions} from './fixtures/legacy-platform/shared/goalSavings.ts';
 const req=body=>new Request('https://fixture.test',{method:'POST',body:JSON.stringify(body)});
 let user,rows;
 beforeEach(()=>{
@@ -106,4 +106,4 @@ it('preserves cent precision when combining legacy starting savings and ledger r
  expect(withGoalContributions([{id:'g',saved_amount:1.005}],[{goal_id:'g',amount:0.01,contribution_key:'key'}])[0].saved_amount).toBe(1.02);
 });
 
-vi.mock('../base44/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
