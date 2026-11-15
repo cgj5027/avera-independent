@@ -49,18 +49,18 @@ In Render, choose **New → Blueprint**, connect `cgj5027/avera-independent`, se
 
 | Resource | Configuration | Approximate monthly cost |
 | --- | --- | --- |
-| `avera-web` | Node 24, `1c-2g`, 2 GB RAM | $25 |
+| `avera-web` | Node 24, `0.5c-512mb`, 512 MB RAM | $7 |
 | `avera-financial-db` | PostgreSQL 16, `0.1c-256mb` | $6 |
 | Database storage | 5 GB | $1.50 |
 | Web private persistent disk | 2 GB | $0.50 |
 
-Expected additional total: **about $33/month**, excluding tax, existing gateway,
+Expected additional total: **about $15/month**, excluding tax, existing gateway,
 provider usage and overages. Review Render's actual estimate before applying.
-For light personal use, changing the web service's `plan` in `render.yaml` to
-`0.5c-512mb` reduces web compute to about $7/month and the additional total to
-about $15/month. Monitor memory, especially during backup/restore; upgrade if
-Render reports out-of-memory restarts. Keep the Blueprint plan consistent with
-your chosen instance size so a later sync does not revert a dashboard-only change.
+The Blueprint starts with the smaller web instance for light personal use. Monitor
+memory, especially during backup/restore; upgrade if Render reports out-of-memory
+restarts. Selecting `1c-2g` provides 2 GB RAM at about $25/month, bringing the
+additional total to about $33/month. Keep the Blueprint plan consistent with your
+chosen instance size so a later sync does not revert a dashboard-only change.
 Both resources use Virginia; edit both regions before first creation if needed.
 The PostgreSQL external IP allow-list is empty; the web service uses its internal
 connection string. Do not reuse the gateway database.
