@@ -4,7 +4,7 @@ This deploys the full financial website, separate from the existing provider gat
 The same source still runs locally with SQLite on Windows, macOS and Linux. Online
 accounts use this new PostgreSQL database from any browser. Desktop and online
 records do not synchronize in V1; portable encrypted export/import is an explicit
-transfer. Neither deployment requires Base44.
+transfer. Both modes run from this repository.
 
 ## 1. Prepare the release and credentials
 
@@ -56,6 +56,11 @@ In Render, choose **New → Blueprint**, connect `cgj5027/avera-independent`, se
 
 Expected additional total: **about $33/month**, excluding tax, existing gateway,
 provider usage and overages. Review Render's actual estimate before applying.
+For light personal use, changing the web service's `plan` in `render.yaml` to
+`0.5c-512mb` reduces web compute to about $7/month and the additional total to
+about $15/month. Monitor memory, especially during backup/restore; upgrade if
+Render reports out-of-memory restarts. Keep the Blueprint plan consistent with
+your chosen instance size so a later sync does not revert a dashboard-only change.
 Both resources use Virginia; edit both regions before first creation if needed.
 The PostgreSQL external IP allow-list is empty; the web service uses its internal
 connection string. Do not reuse the gateway database.
@@ -102,7 +107,7 @@ the restore preview; compare record counts, balances, source labels and financia
 totals before accepting the website as primary. This does not migrate account
 passwords or silently transfer provider tokens. Review bank connection/history
 reconciliation before reconnecting, to avoid importing duplicate transactions.
-See [recovery](STAGE_6_RECOVERY.md) for supported scope and restore safeguards.
+See [recovery](BACKUP_RECOVERY.md) for supported scope and restore safeguards.
 
 ## 4. Move avera.run after staging passes
 
@@ -127,8 +132,8 @@ its exact GET `/api/v1/health` probe; other paths there intentionally return 421
 If rolling back DNS, revert the website's canonical origin consistently as well.
 
 Only retire the old website after these public checks and data reconciliation
-pass. Do not delete old records or cancel Base44/provider subscriptions as part
-of DNS setup. The independent website has no runtime dependency on Base44.
+pass. Keep the previous installation and its records until data transfer and totals
+reconciliation are accepted. Subscription cancellation is a separate operator decision.
 
 ## Operations and recovery
 

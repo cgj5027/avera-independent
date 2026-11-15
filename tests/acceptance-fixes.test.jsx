@@ -4,16 +4,16 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {matches} from './queryFixture';
 const fixture=vi.hoisted(()=>({client:null}));
 const sdk=vi.hoisted(()=>({functions:{invoke:vi.fn()}}));
-vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
-vi.mock('./fixtures/client',()=>({base44:sdk}));
-import contribute from './fixtures/legacy-platform/functions/logGoalContribution/entry.ts';
-import feedback from './fixtures/legacy-platform/functions/submitFeedback/entry.ts';
-import ask from './fixtures/legacy-platform/functions/askAvera/entry.ts';
+vi.mock('test:service-client',()=>({createClientFromRequest:()=>fixture.client}));
+vi.mock('./fixtures/client',()=>({fixtureClient:sdk}));
+import contribute from './fixtures/contracts/functions/logGoalContribution/entry.ts';
+import feedback from './fixtures/contracts/functions/submitFeedback/entry.ts';
+import ask from './fixtures/contracts/functions/askAvera/entry.ts';
 import IncomeDialog from '../src/components/income/IncomeDialog';
 import FeedbackForm from '../src/components/settings/FeedbackForm';
 import {projectYearlyPlan,totalMonthlyExpenses} from '../src/services/financialCalculations';
 import {monthlyAllocation} from '../src/services/overviewAllocation';
-import {withGoalContributions} from './fixtures/legacy-platform/shared/goalSavings.ts';
+import {withGoalContributions} from './fixtures/contracts/shared/goalSavings.ts';
 const req=body=>new Request('https://fixture.test',{method:'POST',body:JSON.stringify(body)});
 let user,rows;
 beforeEach(()=>{
@@ -106,4 +106,4 @@ it('preserves cent precision when combining legacy starting savings and ledger r
  expect(withGoalContributions([{id:'g',saved_amount:1.005}],[{goal_id:'g',amount:0.01,contribution_key:'key'}])[0].saved_amount).toBe(1.02);
 });
 
-vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/contracts/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));

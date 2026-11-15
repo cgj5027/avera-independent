@@ -1,74 +1,66 @@
-# Avera independent
+# Avera
 
-Avera is a user-owned household finance website with a portable Node.js backend,
-SQLite locally, optional PostgreSQL hosting and gateway-based connected services.
-React and Tailwind provide the browser interface. No Base44 account, SDK, plugin,
-authentication, storage or hosted asset is required to build or run this application.
+Avera helps you manage household transactions, bills, budgets, goals and financial plans.
+Use the hosted website or run your own copy on macOS, Windows or Linux.
 
-## Run from source
+## Choose how to use Avera
 
-Use a supported Node.js LTS release, at least 22.18 (CI exercises Node 22 and 24).
+| Option | Start here | Where your records live |
+| --- | --- | --- |
+| Online | [Open avera.run](https://avera.run) and create an account | Hosted PostgreSQL database |
+| Desktop download | [Download and launch guide](docs/DESKTOP.md) | SQLite in your private desktop data folder |
+| Run from source | [Local setup](docs/LOCAL_SETUP.md), or the commands below | SQLite on your computer by default |
+| Host your own website | [Render hosting guide](docs/HOSTED_APP_SETUP.md) | Your PostgreSQL database and private persistent disk |
+
+Online accounts work across browsers. Each local installation has its own accounts
+and records; **local and online data do not automatically synchronize**. Use a
+[portable encrypted backup](docs/BACKUP_RECOVERY.md) to transfer records explicitly.
+Sample data is available from the welcome page and stays separate from personal data.
+
+## Run locally from source
+
+Install [Node.js](https://nodejs.org/) 24 LTS (minimum 22.18) and Git, then run:
 
 ```sh
+git clone https://github.com/cgj5027/avera-independent.git
+cd avera-independent
 npm ci --ignore-scripts
 npm run build
 npm run start:local
 ```
 
-Open the displayed loopback URL. Keep your installation's `.env.local`, database,
-private files and key files outside version control. New source installations
-use `data/avera.sqlite` by default. To configure existing gateway/provider settings,
-see [connected services](docs/CONNECTED_SERVICES.md) and the backend-only template
-[config/server.example.env](config/server.example.env). Existing settings remain
-valid; gateway mode is the default. Financial records are never stored in browser
-localStorage, and selecting a new data path does not migrate records.
+Open the URL printed in Terminal, normally http://127.0.0.1:4175, and create a local
+account. Keep Terminal open while using Avera; press Ctrl+C to stop it. Commands
+work in macOS/Linux terminals and Windows PowerShell. Repository access is required
+to clone or download artifacts if the repository is private.
 
-`npm run dev` starts the independent Vite development UI and proxies backend paths
-to an already running local server on port 4175. An alternate development
-backend can be selected with the loopback-only `AVERA_DEV_BACKEND_URL`. `npm run build:local` remains an
-alias for the independent build; both builds write `dist-local`.
+Manual finances and samples work without provider credentials. AI, bank connections,
+job search and account email require [connected services](docs/CONNECTED_SERVICES.md).
+Without email configured, a local account does not have email password recovery.
 
-## Desktop downloads
+Source installations default to `data/avera.sqlite`. Desktop downloads use a separate
+OS-specific data folder. Follow the relevant guide when configuring either; keep
+credentials and original encryption keys private. Browser localStorage holds
+preferences, not financial records.
 
-[Desktop distribution and upgrade guide](docs/STAGE_7_DISTRIBUTION.md). Packages
-include the built website/backend and locked JavaScript runtime libraries, without
-installation data or credentials. They currently require Node.js LTS; they are not
-self-contained signed installers. User data lives separately from replaceable app
-folders. Existing desktop gateway settings and original keys must be preserved.
+## Host your own website
 
-```sh
-npm run build
-npm run package:desktop
-```
+Follow [the Render guide](docs/HOSTED_APP_SETUP.md) to deploy `render.yaml`, configure
+private credentials, test the temporary HTTPS address and connect a domain. The
+financial website and provider gateway are separate services with separate databases.
+The explicit `start:hosted` command enables public HTTPS hosting; `start:local`
+remains loopback-only. Review the Blueprint's current paid plans before applying it.
 
-Use a successful trusted GitHub Actions run's archive and checksum. Do not deploy
-this repository into or relink it to the original production platform application.
+## Documentation
 
-## Full online website
+- [All guides](docs/README.md): desktop, local, hosted, integrations and operations.
+- [Backup and recovery](docs/BACKUP_RECOVERY.md): export, preview, restore and transfer.
+- [Gateway setup](docs/GATEWAY_SETUP.md): operate connected services for installations.
+- [Optional MCP connections](docs/MCP.md): read-only, separately authorized access.
+- [Contributing](CONTRIBUTING.md): architecture, development and validation.
+- [Security policy](SECURITY.md): report vulnerabilities privately.
 
-[Render setup and domain cutover](docs/HOSTED_APP_SETUP.md) deploys the full app
-with its own PostgreSQL database and persistent private storage using `render.yaml`.
-`npm run start:hosted` is an explicit public-HTTPS entrypoint; desktop startup
-continues to bind only to loopback. The existing integration gateway stays separate.
-An online account works across browsers, while local installations retain their
-own records. Automatic desktop/online synchronization remains deferred to V2.
-
-## Backup, sharing and release acceptance
-
-[Encrypted backup/migration/recovery](docs/STAGE_6_RECOVERY.md) covers portable
-exports and explicit restoration/reconciliation. [Independent MCP](docs/INDEPENDENT_MCP.md)
-is optional, read-only, off by default and separately consented; it is not Ask Avera
-and does not turn the provider gateway into a financial data host. Multi-device
-sync remains disabled in version 1.
-
-Migration 5 signs users out once and adds independent MCP authorization tables.
-Take a fresh backup before upgrade, retain original keys and sign in again.
-The owner's Mac/Windows/Linux desktop acceptance and live gateway AI reports are
-recorded separately from fixture/CI checks. Real-data reconciliation and final
-external-client/cutover acceptance remain operator decisions before cancelling
-the old service. No production deployment or cancellation is automatic.
-
-Validation and stage evidence: [STAGED_DELIVERY.md](docs/STAGED_DELIVERY.md).
-The old platform fixtures under `tests/fixtures/legacy-platform` exist only to
-preserve historical regression cases; they are not deployable production code,
-build inputs or dependencies and are never packaged into a desktop download.
+The interface uses React and Tailwind, with a TypeScript/Node.js backend. SQLite
+supports local use and PostgreSQL supports hosting. Downloaded packages require
+Node.js; they are not self-contained signed installers. Plaid integration currently
+uses Sandbox. Provider usage and hosting may incur charges.

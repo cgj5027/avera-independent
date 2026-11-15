@@ -20,12 +20,12 @@ activate those GitHub features. No response-time commitment is specified.
 
 The security workflow scans available Git history with checksum-pinned Gitleaks,
 runs dependency audits and tests, and checks types/build output with read-only
-repository permissions. Its two historical secret-scan exceptions identify
-specific UI expressions, not credentials. Dependabot delays ordinary npm
+repository permissions. Its narrow, commit-specific secret-scan exceptions identify
+import/UI expressions, not credentials. Dependabot delays ordinary npm
 updates seven days; security updates may follow different provider rules.
 `npm ci` preserves the reviewed lockfile; manual updates need release/provenance review.
 
-Backend SDK imports match the lockfile's reviewed frontend SDK version.
-Any upgrade must update backend imports, local aliases and fixtures together.
-
-See `docs/SECURITY_REMEDIATION.md` for deployed checks and remaining release gates.
+Runtime and package verification reject retired platform dependencies and accidental
+inclusion of installation data. Test contracts are synthetic and must not enter
+production builds. See [contributing](CONTRIBUTING.md) and [recovery](docs/BACKUP_RECOVERY.md)
+for validation and original-key retention.

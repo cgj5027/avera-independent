@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assistantInsights, assistantPrompt } from './fixtures/legacy-platform/shared/assistantInsights.ts';
+import { assistantInsights, assistantPrompt } from './fixtures/contracts/shared/assistantInsights.ts';
 import { calculateIncomeGapAllocated, goalRequiredMonthly } from '../src/services/financialCalculations';
 const today=new Date('2026-10-10T12:00:00Z');
 const input={incomes:[{amount:3000,frequency:'monthly'}],bills:[{name:'Rent',amount:1000,frequency:'monthly'}],categories:[],accounts:[],properties:[],mortgages:[],goals:[],monthlyIncome:3000,monthlyExpenses:1000};

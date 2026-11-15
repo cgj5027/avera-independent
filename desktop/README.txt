@@ -1,8 +1,8 @@
-AVERA DESKTOP — STAGE 7 RELEASE CANDIDATE
+AVERA DESKTOP
 
 Install Node.js 22.18 or newer supported LTS from https://nodejs.org first.
 This package includes the built website, backend and runtime JavaScript libraries.
-It does not require npm install, a build, Base44 access or a provider key to use
+It does not require npm install, a build or a provider key to use
 manual finances and samples. This is not a signed installer and does not bundle Node.
 
 Extract the whole package into a new folder. Do not run from inside an archive.
@@ -53,9 +53,7 @@ in installation.env for read-only OAuth client connections to the local /mcp URL
 See the repository independent MCP guide for permissions, client setup and hosted
 requirements. The provider gateway is not the financial MCP host.
 Migration 5 ends older login sessions once; sign in again after upgrading.
-Base44 cancellation, public signing and final client/cutover acceptance remain
-operator decisions; no deployment or cancellation is automatic. Keep the original service until
-all gates are accepted. No live financial data or credentials are in this package.
+Public signing and external-client acceptance are separate release checks. No live financial data or credentials are in this package.
 
 Third-party runtime libraries retain their bundled licenses. Frontend attribution
 is in dist-local/third-party-notices.txt. After a crash, confirm Avera is stopped
