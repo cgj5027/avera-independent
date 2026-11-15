@@ -12,7 +12,6 @@ services:
     buildCommand: npm ci --include=dev --ignore-scripts && npm run build && npm run check:independent
     startCommand: npm run start:hosted
     healthCheckPath: /api/v1/health
-    maxShutdownDelaySeconds: 120
     domains:
       - avera.run
     disk:
