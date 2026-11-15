@@ -53,6 +53,7 @@ jobs:
       - run: npm run typecheck:backend
       - run: npm run typecheck:platform
       - run: npm run build
+      - run: npm run check:independent
       - name: Install browser for fixture acceptance checks
         run: npx playwright install --with-deps chromium
       - name: Run responsive and accessibility fixture checks
@@ -85,6 +86,7 @@ jobs:
           npm run test:local:browser
           npm run test:stage5:browser
           npm run test:recovery:browser
+          npm run test:mcp:browser
           npm run package:desktop -- "$RUNNER_TEMP/avera-browser-package"
           AVERA_TEST_DESKTOP_PACKAGE="$RUNNER_TEMP/avera-browser-package" npm run test:local:browser
   desktop-preview:

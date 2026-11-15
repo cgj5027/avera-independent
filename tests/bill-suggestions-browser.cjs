@@ -1,3 +1,4 @@
+const {fixturePath}=require('./http-fixture.cjs');
 // Built UI with API fixtures; does not certify deployed AI or cloud persistence.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
@@ -5,10 +6,10 @@ const assert = require('node:assert/strict');
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',args:['--no-sandbox']});const results=[];
  for(const theme of ['light','dark']) for(const width of [320,390,768,1440]) {
   const page=await browser.newPage({viewport:{width,height:900}});let added=[],dismissed=[];
-  await page.addInitScript(theme=>{localStorage.setItem('base44_access_token','fixture');localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:user','manual');},theme);
+  await page.addInitScript(theme=>{localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:user','manual');},theme);
   await page.route('https://**/*',route=>route.abort());
   await page.route('**/api/**',async route=>{
-   const path=new URL(route.request().url()).pathname;let body={};
+   const path=fixturePath(route.request().url());let body={};
    if(path.includes('public-settings'))body={id:'fixture',public_settings:{}};
    else if(path.endsWith('/User/me'))body={id:'user',email:'fixture@example.test',role:'user'};
    else if(path.endsWith('/v2/list'))body={items:[],has_more:false};

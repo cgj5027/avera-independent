@@ -132,7 +132,7 @@ export class AuthService {
       const row=rows[0];if(!row||row.used||Number(row.expires_at)<Date.now())return false;
       await tx.query('UPDATE auth_challenges SET used=1 WHERE token_hash=$1',[row.token_hash]);
       await tx.query('UPDATE users SET password_hash=$1 WHERE id=$2',[hash,row.user_id]);
-      await tx.query('DELETE FROM sessions WHERE user_id=$1',[row.user_id]);return true;
+      await tx.query('DELETE FROM sessions WHERE user_id=$1',[row.user_id]);await tx.query('UPDATE mcp_grants SET revoked=1 WHERE owner_id=$1',[row.user_id]);await tx.query('UPDATE mcp_requests SET used=1 WHERE owner_id=$1',[row.user_id]);return true;
     });
     if(!saved)throw new ApiError(400,'INVALID_RESET','The reset link is invalid or expired.');return {reset:true};
   }

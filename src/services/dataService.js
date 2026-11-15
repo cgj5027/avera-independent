@@ -3,7 +3,7 @@
  * active record adapter. Owner/dataset filters supplement authenticated server
  * authorization; they never replace it. Source labels travel with every record.
  */
-import { withGoalContributions } from '../../base44/shared/goalSavings';
+import { withGoalContributions } from '../../shared/goal-savings.js';
 import { application } from '@/api/application';
 import { setModeOwner, getDataMode, getDemoWorkspace, getModeSnapshot, getModeOwner } from '@/lib/mode';
 

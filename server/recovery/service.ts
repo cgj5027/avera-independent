@@ -192,7 +192,7 @@ export class RecoveryService {
     const reconciliation=await applySnapshot(tx,this.store,owner,doc,preview.mode);
     if(preview.mode==='import')await tx.query('INSERT INTO recovery_imports(owner_id,fingerprint,applied_at) VALUES($1,$2,$3)',[owner,hash,new Date(this.now()).toISOString()]);
     // Revoke every existing browser session after recovery; credentials are never imported.
-    await tx.query('DELETE FROM sessions WHERE user_id=$1',[owner]);return {restored:true,safety_backup_id:safety.id,reconciliation};
+    await tx.query('DELETE FROM sessions WHERE user_id=$1',[owner]);await tx.query('UPDATE mcp_grants SET revoked=1 WHERE owner_id=$1',[owner]);await tx.query('UPDATE mcp_requests SET used=1 WHERE owner_id=$1',[owner]);return {restored:true,safety_backup_id:safety.id,reconciliation};
    });
    let warning='';await this.prune(owner).catch(()=>{warning='RETENTION_FAILED';});await this.state(owner,true,warning,safety.copy_error).catch(()=>{});return {...result,warning};
   }catch(error){

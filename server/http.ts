@@ -13,7 +13,13 @@ import type { RecoveryOptions } from './recovery/service.ts';
 import { claimQuota } from './integrations/quota.ts';
 import { sampleWorkspace } from './samples.ts';
 import { object } from './validation.ts';
+import { McpService } from './mcp.ts';
 
+async function formBody(req:IncomingMessage){
+ if(!req.headers['content-type']?.toLowerCase().startsWith('application/x-www-form-urlencoded'))throw new ApiError(415,'invalid_request','Use application/x-www-form-urlencoded.');
+ const chunks:Buffer[]=[];let size=0;for await(const chunk of req.iterator({destroyOnReturn:false})){size+=chunk.length;if(size>16384){req.resume();throw new ApiError(413,'invalid_request','OAuth request too large.');}chunks.push(Buffer.from(chunk));}
+ const params=new URLSearchParams(Buffer.concat(chunks).toString('utf8'));for(const key of params.keys())if(params.getAll(key).length!==1)invalid('Duplicate OAuth parameter.');return Object.fromEntries(params);
+}
 async function jsonBody(req: IncomingMessage,maximum=1024*1024) {
   if (!req.headers['content-type']?.toLowerCase().startsWith('application/json')) throw new ApiError(415,'INVALID_CONTENT_TYPE','Use application/json.');
   const chunks: Buffer[]=[]; let bytes=0;
@@ -45,6 +51,12 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
   const auth=new AuthService(db,integrations);
   const google=integrations?googleAuth(db,auth,integrations.vault.box,env!,fetcher):undefined;
   let origin='';
+  if(env?.AVERA_MCP_ENABLED!==undefined&&!['true','false'].includes(env.AVERA_MCP_ENABLED))throw Error('AVERA_MCP_ENABLED must be true or false.');
+  if(gatewayOnly&&env?.AVERA_MCP_ENABLED==='true')throw Error('Enable MCP on an application server, not the headless provider gateway.');
+  const mcp=env?.AVERA_MCP_ENABLED==='true'?new McpService(store,()=>publicOrigin??origin):undefined;
+  const mcpOrigins=(env?.AVERA_MCP_ALLOWED_ORIGINS??'').split(',').filter(Boolean);
+  for(const value of mcpOrigins){const u=new URL(value);if(u.origin!==value||u.protocol!=='https:'&&!['http://localhost','http://127.0.0.1'].some(prefix=>value===prefix||value.startsWith(prefix+':')))throw Error('MCP browser origins must be explicit HTTPS or loopback origins.');}
+
   const server=createServer((req,res)=>{ void handle(req,res); });
   async function handle(req: IncomingMessage, res: ServerResponse) {
     try {
@@ -57,17 +69,39 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
       res.setHeader('X-Content-Type-Options','nosniff');
       res.setHeader('Referrer-Policy','no-referrer');
       res.setHeader('X-Frame-Options','DENY');
-      const sessionCookie=(token:string)=>`avera_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800${requestOrigin.startsWith('https:')?'; Secure':''}`;
+      const sessionCookie=(token:string)=>`avera_session=${token}; Path=/api/v1; HttpOnly; SameSite=Lax; Max-Age=28800${requestOrigin.startsWith('https:')?'; Secure':''}`;
       if(method==='POST'&&url.pathname==='/gateway/v1/invoke'&&integrations?.gateway){
         if(req.headers.origin)throw new ApiError(403,'INVALID_ORIGIN','Use a server connection for gateway requests.');
         return send(res,200,await integrations.gateway(req.headers.authorization,await jsonBody(req,8*1024*1024)));
       }
       if(gatewayOnly&&url.pathname!=='/api/v1/health')throw new ApiError(404,'NOT_FOUND','Endpoint not found.');
+      const mcpPath=url.pathname==='/mcp'||['/oauth/authorize','/oauth/token','/oauth/register','/oauth/revoke','/.well-known/oauth-authorization-server','/.well-known/oauth-protected-resource','/.well-known/oauth-protected-resource/mcp'].includes(url.pathname);
+      if(mcpPath){
+        if(!mcp)throw new ApiError(404,'NOT_FOUND','MCP is not enabled on this installation.');
+        if(req.headers.origin&&req.headers.origin!==requestOrigin&&!mcpOrigins.includes(req.headers.origin))throw new ApiError(403,'INVALID_ORIGIN','MCP request origin is not allowed.');
+        if(req.headers.origin){res.setHeader('Access-Control-Allow-Origin',req.headers.origin);res.setHeader('Vary','Origin');}
+        if(method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, MCP-Protocol-Version','Access-Control-Max-Age':'300'});return res.end();}
+        if(method==='GET'&&url.pathname==='/.well-known/oauth-authorization-server')return send(res,200,mcp.metadata());
+        if(method==='GET'&&url.pathname.startsWith('/.well-known/oauth-protected-resource'))return send(res,200,mcp.protectedMetadata());
+        if(method==='GET'&&url.pathname==='/oauth/authorize'){
+          await claimQuota(db,req.socket.remoteAddress??'local','mcp-authorize',120,60000);const target=await mcp.authorize(url.searchParams);res.writeHead(302,{Location:target,'Cache-Control':'no-store'});return res.end();
+        }
+        if(method==='POST'&&url.pathname==='/oauth/register'){await claimQuota(db,req.socket.remoteAddress??'local','mcp-registration',20,3600000);return send(res,201,await mcp.register(await jsonBody(req,16384)));}
+        if(method==='POST'&&url.pathname==='/oauth/token'){await claimQuota(db,req.socket.remoteAddress??'local','mcp-token',120,60000);return send(res,200,await mcp.exchange(await formBody(req)));}
+        if(method==='POST'&&url.pathname==='/oauth/revoke'){await claimQuota(db,req.socket.remoteAddress??'local','mcp-revoke',120,60000);return send(res,200,await mcp.revokeToken(await formBody(req)));}
+        if(url.pathname==='/mcp'&&method==='POST'){
+          if(req.headers['mcp-protocol-version']&&!['2025-11-25','2025-06-18','2025-03-26'].includes(String(req.headers['mcp-protocol-version'])))throw new ApiError(400,'INVALID_PROTOCOL_VERSION','Unsupported MCP protocol version.');
+          if(req.headers.accept&&!/application\/json|\*\/\*/i.test(req.headers.accept))throw new ApiError(406,'NOT_ACCEPTABLE','Accept application/json.');
+          let grant;try{grant=await mcp.authenticate(req.headers.authorization);}catch(error){auth.limit('mcp-auth:'+(req.socket.remoteAddress??'local'));throw error;}await claimQuota(db,grant.owner_id,'mcp-rpc',120,60000);
+          const result=await mcp.rpc(grant.owner_id,await jsonBody(req,65536));if(result===null){res.writeHead(202,{'Cache-Control':'no-store'});return res.end();}return send(res,200,result);
+        }
+        res.setHeader('Allow',url.pathname==='/mcp'?'POST, OPTIONS':'GET, POST, OPTIONS');throw new ApiError(405,'METHOD_NOT_ALLOWED','This MCP endpoint does not support that method.');
+      }
       if (url.pathname.startsWith('/api/')) {
         if (!['GET','HEAD'].includes(method) && req.headers.origin!==requestOrigin) throw new ApiError(403,'INVALID_ORIGIN','Request origin is not allowed.');
         const path=url.pathname;
         if (method==='GET' && path==='/api/v1/health') return send(res,200,{ok:true});
-        if (method==='GET' && path==='/api/v1/settings/public') return send(res,200,{id:'avera-independent',public_settings:{recovery:!!recovery,auth:{email_verification:integrations?.authEmail??false,oauth:google?.enabled??false,password_reset:integrations?.authEmail??false}}});
+        if (method==='GET' && path==='/api/v1/settings/public') return send(res,200,{id:'avera-independent',public_settings:{recovery:!!recovery,mcp:!!mcp,auth:{email_verification:integrations?.authEmail??false,oauth:google?.enabled??false,password_reset:integrations?.authEmail??false}}});
         if(method==='POST'&&path==='/api/v1/auth/sample'){
           await jsonBody(req);auth.limit(req.socket.remoteAddress??'local');
           let current;try{current=await auth.current(cookie(req));}catch{/* No personal session. */}
@@ -108,10 +142,17 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
         }
         if (method==='POST' && path==='/api/v1/auth/logout') {
           await jsonBody(req); await auth.signOut(cookie(req));
-          res.setHeader('Set-Cookie',`avera_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${requestOrigin.startsWith('https:') ? '; Secure':''}`);
+          res.setHeader('Set-Cookie',`avera_session=; Path=/api/v1; HttpOnly; SameSite=Strict; Max-Age=0${requestOrigin.startsWith('https:') ? '; Secure':''}`);
           return send(res,200,{signed_out:true});
         }
+        if(method==='GET'&&path==='/api/v1/mcp/consent-info'&&mcp){let current;try{current=await auth.current(cookie(req));}catch{/* Return sign-in guidance, never record data, to an anonymous consent page. */}return send(res,200,await mcp.info(url.searchParams.get('handle'),current));}
         const user=await auth.current(cookie(req));
+        if(mcp&&path.startsWith('/api/v1/mcp/')){
+          if(user.is_sample)throw new ApiError(403,'SAMPLE_ONLY','Sign in to authorize an AI client.');
+          if(method==='GET'&&path==='/api/v1/mcp/grants')return send(res,200,await mcp.grants(user.id));
+          if(method==='POST'){const data=await jsonBody(req,16384);if(path==='/api/v1/mcp/authorize-grant')return send(res,200,await mcp.respond(data.ctx,data.action,user));if(path==='/api/v1/mcp/revoke')return send(res,200,await mcp.revoke(user.id,data.grant_id));}
+          throw new ApiError(404,'NOT_FOUND','MCP account endpoint not found.');
+        }
         if (method==='GET' && path==='/api/v1/auth/me') return send(res,200,user);
         if(user.is_sample&&!(path.startsWith('/api/v1/records/')||['/api/v1/services/sampleWorkspace','/api/v1/services/projectAnnualIncome','/api/v1/services/logGoalContribution'].includes(path)))throw new ApiError(403,'SAMPLE_ONLY','Create an account to use connected services.');
         if(path.startsWith('/api/v1/recovery/')&&recovery){
@@ -185,6 +226,8 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
     } catch (error) {
       if (res.headersSent) { res.end(); return; }
       const e=error as any;
+      if(e instanceof ApiError&&['/oauth/token','/oauth/register','/oauth/revoke'].includes(req.url?.split('?')[0]??''))return send(res,e.status,{error:/^[a-z_]+$/.test(e.code)?e.code:'invalid_request',error_description:e.message});
+      if(e instanceof ApiError&&e.status===401&&req.url?.split('?')[0]==='/mcp')res.setHeader('WWW-Authenticate',`Bearer resource_metadata="${publicOrigin??origin}/.well-known/oauth-protected-resource/mcp", scope="avera:read"`);
       if (e instanceof ApiError) return send(res,e.status,{error:e.message,code:e.code});
       if (e.code==='23505' || String(e.message).includes('UNIQUE constraint failed')) return send(res,409,{error:'A conflicting record already exists.',code:'CONFLICT'});
       send(res,500,{error:'The request could not be completed.',code:'INTERNAL_ERROR'});
@@ -195,7 +238,7 @@ export async function startLocalServer({ db, port=4175, dist, publicOrigin,env,f
   const address=server.address();
   if (!address || typeof address==='string') throw new Error('Server did not bind.');
   origin=`http://127.0.0.1:${address.port}`;
-  return {url:origin,store,auth,recovery,async close() {
+  return {url:origin,store,auth,recovery,mcp,async close() {
     await new Promise<void>((resolve,reject)=>server.close(error=>error ? reject(error):resolve()));
     await recovery?.close();
     await integrations?.close();

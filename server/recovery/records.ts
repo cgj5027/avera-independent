@@ -4,7 +4,7 @@ import { RecordStore,body } from '../store.ts';
 import { recordSchemas,validateRecord,object } from '../validation.ts';
 import { ApiError,invalid } from '../errors.ts';
 import { canonical,sha,fromBase64,MAX_ARCHIVE_BYTES } from './archive.ts';
-export const RECOVERY_SCHEMA=4;
+export const RECOVERY_SCHEMA=5;
 export const COLLECTIONS=Object.keys(recordSchemas).filter(name=>name!=='PlaidItem');
 const bankFields=new Set(['plaid_item_id','plaid_account_id','plaid_transaction_id','import_key']);
 const idValid=(value:any)=>typeof value==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(value);

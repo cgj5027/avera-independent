@@ -11,7 +11,7 @@ import { setModeOwner, setDataMode, setDemoWorkspace } from '../src/lib/mode';
 import * as data from '../src/services/dataService';
 
 const sdk = vi.hoisted(() => ({ auth: { me: vi.fn() }, functions: { invoke: vi.fn() }, entities: { JobProfile: { filter: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() } }, user: { id: 'a' } }));
-vi.mock('@/api/base44Client', () => ({ base44: sdk }));
+vi.mock('./fixtures/client', () => ({ base44: sdk }));
 vi.mock('@/lib/AuthContext', () => ({ useAuth: () => ({ user: sdk.user }) }));
 vi.mock('@/components/opportunities/ResumeUpload', () => ({
   default: ({ onApply }) => <button type="button" onClick={() => onApply({ skills: 'Bookkeeping, payroll' })}>Apply resume suggestions</button>,

@@ -73,7 +73,7 @@ export function connectBank({ itemId = undefined } = {}) {
         })
     )
   ).catch(error => {
-    if (error?.response || error?.name === 'Base44Error') throw new Error(sandboxErrorMessage(error));
+    if (error?.response) throw new Error(sandboxErrorMessage(error));
     throw error;
   });
 }

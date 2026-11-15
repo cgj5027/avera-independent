@@ -5,7 +5,7 @@ export function createApplication(
   config: ClientConfig,
   adapters: Partial<Record<ClientConfig['backend'], AdapterFactory>>,
 ): Application {
-  if (config.backend !== 'base44' && config.backend !== 'http') {
+  if (config.backend !== 'http') {
     throw new Error('Unsupported application backend.');
   }
   const factory = Object.hasOwn(adapters, config.backend) ? adapters[config.backend] : undefined;

@@ -2,8 +2,8 @@
 
 This repository rebuilds the user-owned Avera application independently of Base44.
 Read `REBUILD.md`, `docs/INDEPENDENT_REBUILD_PLAN.md` and
-`docs/STAGED_DELIVERY.md` before implementation. The README describes the existing
-application; older stage audits and Base44-only restrictions are historical.
+`docs/STAGED_DELIVERY.md` before implementation. The README describes the independent runtime; older stage audits and
+Base44-only restrictions are historical.
 
 ## Implementation rules
 
@@ -16,8 +16,9 @@ application; older stage audits and Base44-only restrictions are historical.
 - Keep storage, auth, files and providers behind replaceable interfaces. Retain
   all agreed online integrations. Never ship shared credentials to the browser or
   downloadable package; never print or commit secrets or real financial records.
-- Base44 is a temporary compatibility backend, not the target architecture.
-  Do not link or deploy this copy to the original production application.
+- Production code and packages must remain independent of Base44. Historical
+  platform fixtures are test-only; never reintroduce the SDK/plugin or import
+  those fixtures in runtime code. Do not link/deploy into the original application.
 - Version 1 has no multi-device synchronization; prepare identity, ownership,
   revisions and change tracking without claiming synchronization is implemented.
 - Demo/personal switching must isolate datasets and refresh dependent views.
@@ -39,9 +40,11 @@ The latter uses real temporary SQLite data and a server-process restart. CI
 requires PostgreSQL tests; a skipped local PostgreSQL case is not a pass.
 Use Node 22.18+ and erasable TypeScript syntax for the native server entrypoint.
 
-Current frontend preview/build still uses the Base44 Vite plugin. A successful
-build does not establish standalone operation. Keep dependencies pinned by the
-lockfile and report dependency advisories rather than hiding them.
+The default build is independent and writes dist-local. Run npm run
+check:independent after building, and run the MCP native/browser checks for
+authorization changes. Keep dependencies pinned by the lockfile and report
+advisories rather than hiding them. Live external-client/provider acceptance
+is distinct from synthetic protocol tests.
 
 Use conventional commits and stage-specific branches/PRs. Keep the original
 `cgj5027/avera` repository unchanged during this rebuild.

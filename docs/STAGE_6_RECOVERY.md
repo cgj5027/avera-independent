@@ -8,7 +8,7 @@ expose recovery. Multi-device synchronization remains disabled.
 
 ## Installation and automatic copies
 
-On startup the local runtime applies migration 4 (additive recovery/file tables).
+On startup the local runtime applies migration 5 (additive recovery/file tables).
 An existing SQLite installation first creates an encrypted, integrity-checked
 installation snapshot using SQLite's supported online backup API. Failed upgrade
 backup prevents migration. New databases do not need that snapshot. PostgreSQL
@@ -75,7 +75,7 @@ history and its linked attachments, preserving manual records, so a fresh import
 cannot silently double-count that history. Provider secrets are never moved by a
 portable backup. Reconnect with your own gateway installation grant afterwards.
 
-Supported archives: format version 1, schema 4; at most 10,000 financial records,
+Supported archives: format version 1, schema 5 (older schema 1–4 archives remain readable); at most 10,000 financial records,
 200 retained attachments, 4 MiB per attachment and 32 MiB total serialized archive.
 Oversize data fails explicitly, never truncates. Attachment bytes, hashes and
 record relationships are checked. Recovery retains imported attachments privately
@@ -158,3 +158,5 @@ source export, and configure/rehearse hosted database recovery. Windows/macOS
 packaging, manual assistive-technology/zoom acceptance and Base44-disabled live
 provider acceptance remain Stage 7/release gates. Base44 must remain available
 until those gates pass. No production migration or deployment is performed here.
+
+Stage 7 migration 5 adds independent MCP state. Account exports exclude its tokens/grants, and record restore, full installation recovery and password reset invalidate old MCP access and pending consent. Reconnect clients explicitly.

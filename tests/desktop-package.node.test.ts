@@ -28,7 +28,7 @@ test('copied desktop package runs independently, keeps data through upgrades, an
  const manifest=JSON.parse(await readFile(join(app,'desktop-manifest.json'),'utf8'));assert.equal(manifest.runtime_bundled,false);assert(!Object.keys(manifest.dependencies).some(name=>/base44|vite|react/.test(name)));
  assert(!Object.keys(manifest.files).some(name=>/^(base44|src|data|config)\/|\.env|\.sqlite|\.key$/.test(name)));
  const notices=await readFile(join(app,'dist-local','third-party-notices.txt'),'utf8');assert(notices.includes('react '));assert(!notices.includes('@base44/'));
- const pkg=JSON.parse(await readFile(join(app,'package.json'),'utf8'));assert.deepEqual(Object.keys(pkg.dependencies).sort(),['parse5','pg']);
+ const pkg=JSON.parse(await readFile(join(app,'package.json'),'utf8'));assert.deepEqual(Object.keys(pkg.dependencies).sort(),['parse5','pg']);assert.equal(manifest.app_version,pkg.version);assert.equal(pkg.version,JSON.parse(await readFile(join(project,'package.json'),'utf8')).version);
  const checked=await run(process.execPath,[join(app,'scripts','desktop-launcher.mjs'),'--check'],{cwd:away,env});assert.match(checked.stdout,/verified/);await assert.rejects(stat(home));
  if(process.platform==='win32')await run('cmd.exe',['/d','/s','/c',`""${join(app,'Start Avera.cmd')}" --check"`],{cwd:away,env,windowsVerbatimArguments:true});
  else{await run('sh',[join(app,'start-avera.sh'),'--check'],{cwd:away,env});await run('sh',[join(app,'Start Avera.command'),'--check'],{cwd:away,env});}

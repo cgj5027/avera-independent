@@ -1,13 +1,13 @@
-vi.mock('../base44/shared/jobDistance.ts', async importOriginal => ({...await importOriginal(), createJobArea: () => ({validate:async()=>null,filter:async rows=>rows})}));
+vi.mock('./fixtures/legacy-platform/shared/jobDistance.ts', async importOriginal => ({...await importOriginal(), createJobArea: () => ({validate:async()=>null,filter:async rows=>rows})}));
 // Existing handler fixtures isolate provider/data behavior; durable limits are exercised in request-safety.test.js.
 import {beforeEach,describe,it,expect,vi} from 'vitest';
 const fixture=vi.hoisted(()=>({client:null}));
 vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
-import search from '../base44/functions/searchJobOpportunities/entry.ts';
-import {searchListings,rateOpportunity} from '../base44/shared/opportunitySource.ts';
+import search from './fixtures/legacy-platform/functions/searchJobOpportunities/entry.ts';
+import {searchListings,rateOpportunity} from './fixtures/legacy-platform/shared/opportunitySource.ts';
 import {searchOpportunities,JOB_SEARCH_TIMEOUT_MS,SERVICE_TIMEOUT_MS} from '../src/services/assistantService';
 const sdk=vi.hoisted(()=>({auth:{me:vi.fn()},functions:{invoke:vi.fn()}}));
-vi.mock('@/api/base44Client',()=>({base44:sdk}));
+vi.mock('./fixtures/client',()=>({base44:sdk}));
 const profile={skills:'Bookkeeping',preferred_roles:'Bookkeeper',experience_level:'entry_level',work_mode:'remote',location:'USA',job_type:'part_time'};
 const posting=(id,extra={})=>({title:'Bookkeeper',company:'Fixture employer',url:`https://www.indeed.com/viewjob?jk=fixture${id}`,work_mode:'remote',employment_type:'part-time',compensation:'$18-$22/hr',...extra});
 const request=body=>new Request('https://fixture.local/search',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
@@ -88,4 +88,4 @@ describe('actual web-search adapter/handler with provider fixtures, not live pos
   });
 });
 
-vi.mock('../base44/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));

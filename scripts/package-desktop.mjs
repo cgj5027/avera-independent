@@ -8,6 +8,7 @@ if(args.length>1)throw Error('Usage: npm run package:desktop -- NEW_OUTPUT_DIREC
 const output=resolve(args[0]??join(root,'release','avera-desktop'));
 // Packages are built from an allowlist into a new directory; never copy an installation.
 if(output===root||root.startsWith(output+sep)||['server','shared','scripts','desktop','dist-local','node_modules'].some(name=>output===join(root,name)||output.startsWith(join(root,name)+sep)))throw Error('Choose a new package directory.');
+const version=JSON.parse(await readFile(join(root,'package.json'),'utf8')).version;
 const lock=JSON.parse(await readFile(join(root,'package-lock.json'),'utf8'));
 const dependencies=new Map();
 function dependency(name,parent=''){
@@ -40,11 +41,11 @@ try{
   if(installed.version!==info.version)throw Error('Installed runtime dependencies differ from the lockfile. Run npm ci.');
   await mkdir(dirname(join(output,path)),{recursive:true});await safeCopy(join(root,path),join(output,path));
  }
- await writeFile(join(output,'package.json'),JSON.stringify({name:'avera-desktop',version:'0.1.0-preview.7',private:true,type:'module',engines:{node:'>=22.18.0'},scripts:{start:'node scripts/desktop-launcher.mjs',verify:'node scripts/verify-desktop.mjs'},dependencies:Object.fromEntries(['pg','parse5'].map(name=>[name,lock.packages['node_modules/'+name].version]))},null,2)+'\n');
+ await writeFile(join(output,'package.json'),JSON.stringify({name:'avera-desktop',version,private:true,type:'module',engines:{node:'>=22.18.0'},scripts:{start:'node scripts/desktop-launcher.mjs',verify:'node scripts/verify-desktop.mjs'},dependencies:Object.fromEntries(['pg','parse5'].map(name=>[name,lock.packages['node_modules/'+name].version]))},null,2)+'\n');
  const files={};
  async function inventory(dir){for(const name of (await readdir(dir)).sort()){const path=join(dir,name),info=await lstat(path);if(info.isDirectory())await inventory(path);else files[relative(output,path).split(sep).join('/')]=createHash('sha256').update(await readFile(path)).digest('hex');}}
  await inventory(output);
- const manifest={format:'avera-desktop',version:1,app_version:'0.1.0-preview.7',created_at:new Date().toISOString(),node_minimum:'22.18.0',runtime_bundled:false,platform:'portable-node',dependencies:Object.fromEntries([...dependencies].map(([path,info])=>[path,{version:info.version,integrity:info.integrity??null,license:info.license??null}])),files};
+ const manifest={format:'avera-desktop',version:1,app_version:version,created_at:new Date().toISOString(),node_minimum:'22.18.0',runtime_bundled:false,platform:'portable-node',dependencies:Object.fromEntries([...dependencies].map(([path,info])=>[path,{version:info.version,integrity:info.integrity??null,license:info.license??null}])),files};
  await writeFile(join(output,'desktop-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  const {verifyDesktop}=await import('./verify-desktop.mjs');await verifyDesktop(output);
  console.log('Verified desktop package: '+output+' ('+Object.keys(files).length+' files; Node.js 22.18+ required)');

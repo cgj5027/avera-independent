@@ -1,3 +1,4 @@
+const {fixturePath}=require('./http-fixture.cjs');
 // Run with the Vite server running: node tests/browser-smoke.cjs.
 // API responses here are fixtures, not evidence of deployed database behavior.
 const { chromium } = require('playwright');
@@ -13,7 +14,7 @@ const assert = require('node:assert/strict');
     await page.addInitScript(({theme})=>{localStorage.setItem('base44_access_token','audit-fixture');localStorage.setItem('theme',theme);sessionStorage.setItem('avera_data_mode:audit-user','manual');},{theme});
     await page.route('https://**/*',route=>route.abort());
     await page.route('**/api/**',async route=>{
-      const path=new URL(route.request().url()).pathname;
+      const path=fixturePath(route.request().url());
       if (!path.startsWith('/api/')) return route.continue();
       let body;
       if(path.includes('public-settings'))body={id:'audit',public_settings:{}};
@@ -152,7 +153,7 @@ const assert = require('node:assert/strict');
       }
       if (path === '/opportunities') {
         await page.keyboard.press('Escape');
-        await page.route('**/api/**',route=>new URL(route.request().url()).pathname.includes('/functions/searchJobOpportunities') ? route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture unavailable"}'}) : route.fallback());
+        await page.route('**/api/**',route=>fixturePath(route.request().url()).includes('/functions/searchJobOpportunities') ? route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture unavailable"}'}) : route.fallback());
         await page.getByRole('button',{name:'Find opportunities'}).click();
         await page.getByText('Demonstration listings',{exact:true}).waitFor();
         const a=await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}));});

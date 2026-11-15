@@ -7,7 +7,7 @@
  * source: 'Sample data' and carries demo_profile — this is the explicit
  * fallback dataset, and it NEVER claims to have been imported from a bank.
  * (The Plaid Sandbox custom-user variant of each scenario lives in
- * base44/shared/demoPlaidConfigs.ts; its records are labeled 'Plaid Sandbox'.)
+ * server/integrations/logic/demoPlaidConfigs.js; its records are labeled 'Plaid Sandbox'.)
  *
  * Pure functions only — no database access here.
  */

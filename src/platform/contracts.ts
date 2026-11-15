@@ -21,7 +21,7 @@ export const PUBLIC_COLLECTIONS = [
 ] as const;
 export interface Application {
   cancelPendingRequests?(): void;
-  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean; sampleWorkspaces?: boolean; recovery?: boolean };
+  capabilities?: { oauth: boolean; passwordReset: boolean; emailVerification: boolean; privacyControls?: boolean; sampleWorkspaces?: boolean; recovery?: boolean; mcp?: boolean };
   auth: {
     /** A hint to attempt verification, never proof of authorization. */
     hasSession(): boolean;
@@ -48,6 +48,7 @@ export interface Application {
     apply(input:Fields): Promise<Fields>;
     attachment(id:string): Promise<Fields>;
   };
+  mcp?: { list():Promise<Fields>; revoke(id:string):Promise<Fields> };
   records: {
     /** Goal/Property deletion removes dependents atomically on the server. */
     cascadesDependents?: boolean;
@@ -63,5 +64,5 @@ export interface Application {
   };
 }
 
-export interface ClientConfig { backend: 'base44' | 'http' }
+export interface ClientConfig { backend: 'http' }
 export type AdapterFactory = () => Application;

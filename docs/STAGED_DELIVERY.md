@@ -355,3 +355,58 @@ all three type checks, both builds, workflow YAML/shell/script syntax checks and
 dependency audits passed (zero known advisories). The independent build keeps the
 existing large-bundle warning; compatibility builds also warn about absent Base44
 configuration. Cross-OS CI and owner/device acceptance are separate gates.
+
+## Stage 7B: independent default build, OAuth/MCP and platform retirement
+
+Implementation is complete in the `0.1.0-rc.1` release candidate, subject to the
+final PR/CI and operator acceptance described in [the desktop guide](STAGE_7_DISTRIBUTION.md)
+and [MCP guide](INDEPENDENT_MCP.md). The owner reported Mac, Windows and Linux
+checks passed on the prior preview, and gateway-backed AI worked after configuring
+the downloaded app. These are owner reports, separate from synthetic test results.
+
+The sole production adapter is now Avera HTTP. The default build and local build
+both produce `dist-local`; SDK/plugin, token/bootstrap code and unused compatibility
+build tooling are removed. Original platform handlers/schemas/adapter contracts
+remain test-only historical fixtures. Financial planning/contribution logic now
+imports platform-free shared files without changing its arithmetic. A build/source/
+lockfile guard rejects reintroduced platform runtime dependencies. The development
+proxy accepts its own loopback UI writes while preserving forged-Origin rejection.
+
+Independent read-only MCP supplies protected-resource/authorization discovery,
+public client registration, mandatory S256 PKCE, account-bound single-use consent,
+resource/permission-bound hashed tokens, rotating refresh with replay revocation,
+and owner-managed grant revocation. Tools read personal records only; no samples,
+provider identifiers/credentials, private files, writes or payments. The official
+MCP client verifies both the complete OAuth flow and initialized tool calls.
+Consent displays the account/client/redirect and warns that clients may retain data.
+The endpoint is disabled by default and cannot run on the headless provider gateway.
+
+Migration 5 adds MCP state and invalidates earlier login sessions once when cookie
+scope changes to `/api/v1`; users sign in again. Loopback API callback paths,
+including encoded paths, are rejected to prevent sending a session to a native
+client callback. Password reset, record restore and full installation recovery
+invalidate existing MCP access and pending consents. Provider grants/vault keys and
+financial records are preserved. SQLite takes its Stage 6 pre-upgrade snapshot;
+hosted operators must retain a fresh database backup and separate original keys.
+
+Local evidence (Linux/Node 24, clean lockfile install): all 454 regression tests
+passed. The complete 110-check native SQLite/PostgreSQL suite passed with no skips;
+final strengthened MCP-only checks passed 15 cases across both engines. An additional
+real development-proxy test passed, including CSRF rejection. Copied-package
+integrity, exclusive-home, upgrade, offline, version and recovery checks passed.
+Real browser checks passed: 43 finance cases, 49 sample/navigation cases, 41 recovery
+cases, 24 MCP consent/revocation cases and 43 finance cases against a copied package.
+Synthetic HTTP/layout fixtures passed 252 checks plus 84 chat/drawer checks. No
+reported axe violations, external independent-browser requests or browser errors.
+Lint, all three type checks, independent builds, dependency audits (zero known
+advisories), workflow/script checks and source/lockfile/bundle independence checks
+passed. The existing large-bundle warning remains; the retired-platform build
+configuration warning no longer applies. Cross-OS CI for this updated candidate
+is distinct from earlier owner acceptance and these local checks.
+
+No production records/configuration/deployment or subscriptions were changed.
+External clients need explicit reconnection; cloud MCP requires a separate HTTPS
+financial application server and is not multi-device sync. Final updated-device/
+external-client checks, original-data reconciliation and actual cutover/cancellation
+remain operator steps. The Stage 7B PR is based on the still-open Stage 7A branch;
+merge the packaging PR first, then this candidate, after their checks pass.

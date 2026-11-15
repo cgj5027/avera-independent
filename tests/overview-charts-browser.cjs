@@ -1,3 +1,4 @@
+const {fixturePath}=require('./http-fixture.cjs');
 // Built frontend with authenticated API fixtures; no hosted financial/model calls.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
@@ -10,12 +11,12 @@ const assert = require('node:assert/strict');
     page.on('pageerror', error => errors.push(error.message));
     let scenario = 'planned';
     await page.addInitScript(theme => {
-      localStorage.setItem('base44_access_token', 'fixture'); localStorage.setItem('theme', theme);
+       localStorage.setItem('theme', theme);
       sessionStorage.setItem('avera_data_mode:overview-user', 'sandbox');
     }, theme);
     await page.route('https://**/*', route => route.abort());
     await page.route('**/api/**', async route => {
-      const path = new URL(route.request().url()).pathname;
+      const path = fixturePath(route.request().url());
       let body = {};
       if (path.includes('public-settings')) body = { id: 'fixture', public_settings: {} };
       else if (path.endsWith('/User/me')) body = { id: 'overview-user', email: 'fixture@example.test', role: 'user' };

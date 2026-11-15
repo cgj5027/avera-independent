@@ -1,14 +1,18 @@
-# Stage 7, checkpoint A: portable desktop preview
+# Stage 7: independent desktop release candidate
 
-Stage 7 is in progress. This checkpoint packages and tests the independent runtime;
-it does **not** authorize Base44 cancellation or claim final desktop certification.
+Stage 7 now includes the independent default build, portable packages and
+[OAuth/MCP replacement](INDEPENDENT_MCP.md). The owner reported Mac, Windows and
+Linux desktop checks passed on the prior preview. The final candidate still needs
+its CI and updated-installation/client acceptance; deployment and Base44
+cancellation are not automatic.
 The owner reported Stage 6 deployed, its separate-installation restore rehearsal
 passed, and the Render PostgreSQL backup completed. Provider backup/PITR retention,
 separate credential recovery and final data migration still need recorded acceptance.
 
 ## What is distributed
 
-`npm run build:local` builds the independent website without the Base44 plugin.
+`npm run build` and `npm run build:local` both build the independent website.
+The Base44 SDK, plugin and compatibility runtime have been removed.
 `npm run package:desktop` assembles `release/avera-desktop` from an explicit allowlist:
 backend, shared finance/sample schemas and logic, built website, launch/verification
 scripts and the locked JavaScript runtime dependency closure for `pg` and `parse5`.
@@ -20,7 +24,7 @@ Base44 source/SDK/plugin, frontend source tree, development server or npm instal
 is needed in the resulting package. Its manifest records file hashes, runtime
 library versions and their registry integrity metadata.
 
-This preview **requires an existing supported Node.js LTS installation**, at least
+This candidate **requires an existing supported Node.js LTS installation**, at least
 22.18. CI targets Node 22 and 24. It does not include a Node binary, installer,
 code signing, automatic updater or background service. Being platform-neutral
 JavaScript does not establish that an arbitrary OS/architecture is supported.
@@ -30,9 +34,9 @@ and their own acceptance. The CI runner matrix records automation on its actual
 runner OS/architecture; it is not evidence of physical-device or every-version
 coverage. Self-contained signed installers are a later packaging decision.
 
-## Obtain and start a preview
+## Obtain and start the candidate
 
-1. Wait for the Stage 7 PR checks, including all desktop matrix jobs, to pass.
+1. Wait for the final Stage 7 PR checks, including all desktop matrix jobs, to pass.
 2. Download a desktop artifact from that commit's **Security and validation** run.
    It contains a `.tar.gz` and `.sha256`. Compare its SHA-256 using `Get-FileHash`
    on PowerShell, `shasum -a 256` on macOS, or `sha256sum` on Linux. Obtain both
@@ -131,22 +135,29 @@ shell's syntax on Windows.) The workflow runs package checks on Windows, macOS
 and Linux with Node 22/24, then uploads only verified preview archives/checksums.
 These are CI artifacts, not published production installers or deployments.
 
-Before Stage 7 can close:
+Final operator acceptance before cutover:
 
-1. Accept clean-machine startup, offline finance, package upgrade and recovery on
-   each supported physical desktop/architecture, including screen reader, keyboard,
-   zoom/reflow and real-device checks.
-2. Replace and accept the original inbound OAuth/MCP service. Independent consent
-   transport currently returns unavailable; the legacy consent screen is not a
-   replacement MCP server. Preserve the original service until a tested Avera-owned
-   replacement and AI-client reconnection path are accepted.
-3. Retire Base44's compatibility adapter, SDK/plugin and default development build
-   after that replacement. The desktop artifact is independent; the **repository's
-   compatibility build is intentionally still present** at this checkpoint.
-4. Reconcile the actual authorized source export/files, separately protected keys
-   and gateway credentials. Complete retained-provider workflows with Base44
-   disabled in a controlled acceptance environment. Fixture tests do not certify
-   live bank, email, geocoding, job or AI services.
-5. Confirm supported platforms, distribution/signing choice, operational recovery
-   and the final cutover before cancelling Base44. No cancellation or production
-   migration is performed by this checkpoint.
+1. Wait for the final candidate's full CI and OS matrix to pass. Download the updated
+   artifact, keep a fresh encrypted backup/original keys, and test the upgraded data
+   home. Migration 5 ends old login sessions once; sign in again. Preserve gateway
+   configuration. Earlier desktop acceptance is evidence for the prior preview,
+   distinct from this updated candidate.
+2. If you use external MCP clients, enable the independent endpoint, reconnect and
+   verify read-only access and revocation as described in [the MCP guide](INDEPENDENT_MCP.md).
+   Old platform authorizations cannot transfer. A cloud client needs a separately
+   hosted HTTPS application server, not the headless integration gateway.
+3. Compare any original records/files with the independent installation and confirm
+   migration/reconciliation or intentional re-entry. Keep verified recovery material
+   and hosted database backup/credential recovery available. No production export
+   or destructive migration is performed by this branch.
+4. Record final device/keyboard/zoom/screen-reader acceptance to the extent required
+   for your release. Automated axe checks do not certify all WCAG 2.2 AA criteria.
+5. Select the final primary installation and cutover. Version 1 still has no
+   multi-device sync. Cancel the original platform only after data, retained live
+   providers, recovery and any external client use are accepted. No cancellation,
+   new public hosting or deployment is performed automatically.
+
+The old adapter/functions/schemas are retained only under test fixtures to keep
+historical regressions. They are not production build inputs or downloadable
+runtime dependencies. `npm run check:independent` checks source imports, the
+lockfile and built assets for platform dependencies after building.

@@ -1,5 +1,6 @@
 import { application } from '@/api/application';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ConnectedClients from '@/components/settings/ConnectedClients';
 import BackupRecovery from '@/components/settings/BackupRecovery';
 import GuestConnectedState from '@/components/states/GuestConnectedState';
 import ConnectedServices from '@/components/settings/ConnectedServices';
@@ -56,6 +57,7 @@ export default function Settings() {
         </SettingSection>
 
         {user?.is_sample?<GuestConnectedState/>:<ConnectedServices />}
+        {!user?.is_sample && <ConnectedClients />}
 
         <SettingSection title="Bank connections" description="Simulated connections only in this stage.">
           {user?.is_sample?<p className="text-muted-foreground">Create an account to use connected services.</p>:<details><summary className="min-h-11 cursor-pointer py-3 font-medium">Advanced: Plaid Sandbox testing</summary><BankConnections/></details>}

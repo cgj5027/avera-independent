@@ -1,7 +1,7 @@
 {
-  "name": "base44-app",
+  "name": "avera-independent",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,18 +17,18 @@
     "typecheck:platform": "tsc -p tsconfig.platform.json",
     "build:local": "node scripts/build-local.mjs",
     "start:local": "node --env-file-if-exists=.env.local --experimental-strip-types server/index.ts",
-    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts tests/integrations.node.test.ts tests/gateway-hosting.node.test.ts tests/job-availability.node.test.ts tests/samples.node.test.ts tests/recovery.node.test.ts",
+    "test:local": "node --experimental-strip-types --test tests/local-backend.node.test.ts tests/integrations.node.test.ts tests/gateway-hosting.node.test.ts tests/job-availability.node.test.ts tests/samples.node.test.ts tests/recovery.node.test.ts tests/mcp.node.test.ts tests/dev-proxy.node.test.ts",
     "test:recovery:browser": "node --experimental-strip-types tests/recovery-browser.cjs",
     "test:stage5:browser": "node tests/stage5-browser.cjs",
     "test:local:browser": "node tests/local-runtime-browser.cjs",
     "recovery": "node --env-file-if-exists=.env.local --experimental-strip-types server/recovery-cli.ts",
     "start:gateway": "node --env-file-if-exists=.env.local --experimental-strip-types server/gateway.ts",
     "package:desktop": "node scripts/package-desktop.mjs",
-    "test:desktop": "node --experimental-strip-types --test tests/desktop-package.node.test.ts"
+    "test:desktop": "node --experimental-strip-types --test tests/desktop-package.node.test.ts",
+    "test:mcp:browser": "node --experimental-strip-types tests/mcp-browser.cjs",
+    "check:independent": "node scripts/check-independent.mjs"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.57",
-    "@base44/vite-plugin": "^1.0.48",
     "@fontsource/inter": "^5.3.0",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
@@ -97,6 +97,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.13.5",
@@ -114,7 +115,6 @@
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
     "jsdom": "^30.1.2",
-    "nitro": "^3.0.260610-beta",
     "playwright": "^1.64.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.3.3",

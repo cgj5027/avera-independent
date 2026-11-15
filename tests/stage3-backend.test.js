@@ -5,14 +5,14 @@ import { matches } from './queryFixture';
 const fixture=vi.hoisted(()=>({client:null}));
 vi.mock('npm:@base44/sdk@0.8.53',()=>({createClientFromRequest:()=>fixture.client}));
 vi.mock('base44:runtime',()=>({secrets:{get:key=>key==='PLAID_CLIENT_ID'?'fixture-client':'fixture-secret'}}));
-import sync from '../base44/functions/plaidSync/entry.ts';
-import exchange from '../base44/functions/plaidExchangeToken/entry.ts';
-import disconnect from '../base44/functions/plaidDisconnect/entry.ts';
-import link from '../base44/functions/plaidCreateLinkToken/entry.ts';
-import demoConnect from '../base44/functions/demoSandboxConnect/entry.ts';
-import ask from '../base44/functions/askAvera/entry.ts';
-import { plaidRequest, PLAID_HOST } from '../base44/shared/plaid.ts';
-import { datasetQuery } from '../base44/shared/dataset.ts';
+import sync from './fixtures/legacy-platform/functions/plaidSync/entry.ts';
+import exchange from './fixtures/legacy-platform/functions/plaidExchangeToken/entry.ts';
+import disconnect from './fixtures/legacy-platform/functions/plaidDisconnect/entry.ts';
+import link from './fixtures/legacy-platform/functions/plaidCreateLinkToken/entry.ts';
+import demoConnect from './fixtures/legacy-platform/functions/demoSandboxConnect/entry.ts';
+import ask from './fixtures/legacy-platform/functions/askAvera/entry.ts';
+import { plaidRequest, PLAID_HOST } from './fixtures/legacy-platform/shared/plaid.ts';
+import { datasetQuery } from './fixtures/legacy-platform/shared/dataset.ts';
 const req=body=>new Request('https://fixture.local/function',{method:'POST',body:JSON.stringify(body||{}),headers:{'content-type':'application/json'}});
 let rows, fetchMock, user, pages;
 const account={account_id:'acc',name:'Checking',type:'depository',subtype:'checking',balances:{current:100,available:90}};
@@ -58,9 +58,9 @@ describe('actual backend handlers with SDK/Plaid fixtures; NOT real Sandbox requ
     await expect(plaidRequest('//evil.org',{})).rejects.toThrow();
   });
   it('has server-only credential RLS and hides legacy tokens at field level',()=>{
-    const schema=JSON.parse(readFileSync('base44/entities/PlaidCredential.jsonc','utf8'));
+    const schema=JSON.parse(readFileSync('tests/fixtures/legacy-platform/entities/PlaidCredential.jsonc','utf8'));
     expect(Object.values(schema.rls)).toEqual([false,false,false,false]);
-    const legacy=JSON.parse(readFileSync('base44/entities/PlaidItem.jsonc','utf8'));
+    const legacy=JSON.parse(readFileSync('tests/fixtures/legacy-platform/entities/PlaidItem.jsonc','utf8'));
     expect(legacy.properties.access_token.rls.read).toBe(false);
   });
   it('exchanges only Sandbox public tokens and returns no access token',async()=>{
@@ -232,7 +232,7 @@ describe('actual backend handlers with SDK/Plaid fixtures; NOT real Sandbox requ
 
 });
 
-vi.mock('../base44/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
+vi.mock('./fixtures/legacy-platform/shared/usageLimits.ts',()=>({claimUsage:vi.fn(async()=>{})}));
 
 it('does not log upstream exception contents during Plaid sync failure',async()=>{
  const spy=vi.spyOn(console,'error').mockImplementation(()=>{});

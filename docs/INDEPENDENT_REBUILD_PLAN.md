@@ -1,6 +1,7 @@
 # Avera independent rebuild
 
-Status: approved direction; staged implementation started. Track completed work
+Status: implementation through the Stage 7 independent release candidate; final
+operator cutover acceptance remains separate. Track completed work
 and validation in [stage checkpoints](STAGED_DELIVERY.md). This repository preserves the
 history and code of `cgj5027/avera`, branch `work`, through
 `6729017694c87345cdc0b52e645d77867f613808`.
@@ -96,15 +97,14 @@ Local storage does not mean local AI processing.
 9. Cut over; cancel Base44 only after acceptance and recovery checks pass.
 
 Stage 4 implements the outgoing provider and independent account flows; see
-[connected-service setup and live acceptance](CONNECTED_SERVICES.md). The existing
-Base44 inbound MCP publishing service must also be replaced and accepted before
-the Stage 7 exit gate; its compatibility consent page is not proof of an
-independent MCP implementation.
+[connected-service setup and live acceptance](CONNECTED_SERVICES.md). Stage 7 replaces the original inbound MCP service with independent OAuth/PKCE
+and read-only tools; see [MCP setup and acceptance](INDEPENDENT_MCP.md). Client
+reconnection/hosted acceptance is separate from synthetic interoperability tests.
 
 Base44 exit gates: no SDK/plugin/runtime dependencies, Base44-hosted assets,
 authentication, storage, functions, AI/file services or secrets required for
-operation; Avera-owned provider accounts; migrated data reconciled. The current
-copied application still depends on Base44 until this work is complete.
+operation; Avera-owned provider accounts; migrated data reconciled. The release candidate no longer has Base44 runtime, SDK/plugin or hosted-asset
+dependencies. Actual data/client cutover and cancellation remain operator steps.
 
 ## Assessment baseline
 
@@ -123,5 +123,5 @@ participate in desktop acceptance. Supply signing identities if public installer
 require them. Multi-device sync remains out of scope for version 1.
 
 Stage 5 implementation and its remaining manual acceptance gates are recorded in
-[the website/sample guide](STAGE_5_WEBSITE.md). Multi-device synchronization and
-automated recovery remain outside this stage.
+[the website/sample guide](STAGE_5_WEBSITE.md). Multi-device synchronization remains deferred; Stage 6 implemented automated
+recovery and Stage 7 retains it in independent packages.
