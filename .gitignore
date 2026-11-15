@@ -51,3 +51,6 @@ dist-ssr
 
 # Generated desktop distributions (must never contain installation data)
 /release/
+
+# Deliberate synthetic example only; personal recovery archives remain ignored.
+!examples/recovery/avera-established-household-two-properties.avera
